@@ -1,0 +1,15 @@
+.DS_Store
+target
+*.class
+.idea
+.classpath
+.project
+.settings
+*.iml
+*.ipr
+*.iws
+out
+
+tests.sc
+
+*/META-INF/*
