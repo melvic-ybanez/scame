@@ -5,10 +5,11 @@ sealed trait Expr
 object Expr {
   sealed trait Atom extends Expr
 
-  case object SFalse extends Atom
-  case object STrue extends Atom
+  sealed trait SBoolean extends Expr
+  case object SFalse extends SBoolean
+  case object STrue extends SBoolean
 
-  final case class Character(char: Char) extends Expr
+  final case class SChar(value: String) extends Expr
 
   final case class Symbol(name: String) extends Expr
 

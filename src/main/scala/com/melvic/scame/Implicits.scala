@@ -26,3 +26,5 @@ trait Implicits {
     }
   }
 }
+
+object Implicits extends Implicits
