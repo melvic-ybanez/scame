@@ -60,9 +60,9 @@ object Eval {
           b <- Eval(body)(e)
         } yield b
       case Cons(Lambda(Symbol(param), body), args) => for {
-        a <- args.asScalaList.foldLeft[EvalResult] (SNil.valid) {
-          case (err: ErrorCode, _) => err
-          case (_, arg) => Eval(arg)
+        a <- args.asScalaList.foldLeft[EvalResult](SNil.valid) {
+          case (err @ Left(_: ErrorCode), _) => err
+          case (Right(acc: SList), arg) => Eval(arg).flatMap(Cons(_, acc).valid)
         }
         e <- env + (param, a)
         b <- Eval(body)(e)
