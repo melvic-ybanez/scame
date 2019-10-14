@@ -3,20 +3,28 @@ package com.melvic.scame
 sealed trait Expr
 
 object Expr {
-  final case class Identifier(name: String) extends Expr
+  final case class Atom(value: String) extends Expr
+  final case class Symbol(name: String) extends Expr
 
   sealed trait SList extends Expr
   case object SNil extends SList
-  final case class Pair(first: Expr, second: Expr) extends SList
+  final case class Cons(head: Expr, tail: SList) extends SList
+  final case class Pair(first: Expr, second: Expr) extends Expr
 
-  sealed trait SForm extends Expr
-  final case class Define(name: String, body: Expr) extends SForm
-  final case class Quote(body: Expr) extends SForm
-  final case class Lambda(param: Identifier, body: Expr) extends SForm
-  final case class Cond(pairs: Vector[SList]) extends SForm
-  final case class Let(pairs: Vector[SList], body: Expr) extends SForm
+  // Special Forms
+  case object Define extends Expr
+  case object Lambda extends Expr
+  case object Cons extends Expr
 
-  sealed trait Func extends Expr
-  final case class Car(pair: Pair) extends Func
-  final case class Cdr(pair: Pair) extends Func
+  // Special Forms Evaluated
+  final case class Define(name: String, value: Expr) extends Expr
+  final case class Quote(body: Expr) extends Expr
+  final case class Lambda(params: Expr, body: Expr) extends Expr
+  final case class Cond(pairs: Vector[Cons]) extends Expr
+  final case class Let(pairs: Vector[Cons], body: Expr) extends Expr
+
+  final case class Car(pair: Pair) extends Expr
+  final case class Cdr(pair: Pair) extends Expr
+
+  final case class Definition(env: Env) extends Expr
 }
