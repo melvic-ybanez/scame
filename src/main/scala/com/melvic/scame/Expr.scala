@@ -15,6 +15,7 @@ object Expr {
   case object Define extends Expr
   case object Lambda extends Expr
   case object Cons extends Expr
+  case object Quote extends Expr
 
   // Special Forms Evaluated
   final case class Define(name: String, value: Expr) extends Expr

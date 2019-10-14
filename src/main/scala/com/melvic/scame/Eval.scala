@@ -1,9 +1,7 @@
 package com.melvic.scame
 
-import com.melvic.scame.ErrorCode.{ExprMismatch, SymbolNotFound}
+import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, SymbolNotFound}
 import com.melvic.scame.Expr._
-
-import scala.annotation.tailrec
 
 object Eval {
   type EvalResult = ErrorOr[Expr]
@@ -19,8 +17,7 @@ object Eval {
     def emptyList: PartialEval = { case SNil => SNil.valid }
 
     def pair: PartialEval = {
-      case Cons(Cons, tail) =>
-        ExprMismatch("pair" +: Vector(), tail.toString).invalid
+      case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).invalid
       case Cons(Cons, Cons(head, tail)) => for {
         h <- Eval(head)
         t <- Eval(tail)
@@ -30,6 +27,8 @@ object Eval {
           // Otherwise, it remains an improper list.
         case _ => Pair(h, t)
       }
+      case Cons(Cons, tail) =>
+        ExprMismatch("pair" +: Vector(), tail.toString).invalid
     }
 
     def define: PartialEval = {
@@ -70,9 +69,14 @@ object Eval {
       } yield b
     }
 
+    def quote: PartialEval = {
+      case Cons(Quote, Cons(arg, _)) => arg.valid
+    }
+
     val eval = atom orElse symbol orElse
       emptyList orElse pair orElse
-      define orElse lambda
+      define orElse lambda orElse
+      quote
     eval(expr)
   }
 }
