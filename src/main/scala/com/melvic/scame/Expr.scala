@@ -3,7 +3,13 @@ package com.melvic.scame
 sealed trait Expr
 
 object Expr {
-  final case class Atom(value: String) extends Expr
+  sealed trait Atom extends Expr
+
+  case object SFalse extends Atom
+  case object STrue extends Atom
+
+  final case class Character(char: Char) extends Expr
+
   final case class Symbol(name: String) extends Expr
 
   sealed trait SList extends Expr
