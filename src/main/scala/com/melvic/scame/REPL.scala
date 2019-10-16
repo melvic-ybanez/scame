@@ -1,22 +1,34 @@
 package com.melvic.scame
 
+import com.melvic.scame.Env.EmptyEnv
 import fastparse.Parsed
+import zio.console._
+import zio.{RIO, UIO, URIO, ZIO}
 
 import scala.annotation.tailrec
 import scala.io.StdIn
 
 object REPL {
-  @tailrec
-  def apply(env: Env): Unit = {
-    val input = StdIn.readLine("> ")
-    if (input == "exit") println("Bye!")
-    else Parse(input) match {
-      case failure: Parsed.Failure =>
-        println(failure.msg)
-        REPL(env)
-      case Parsed.Success(value, _) =>
-        println(Show[Expr](value))
-        REPL(env)
-    }
+  // TODO: Update the env in every iteration
+  def apply() = {
+    def recurse(env: Env): ZIO[Console, Any, Unit]  = for {
+      _ <- putStrLn("> ")
+      input <- getStrLn
+      _ <- if (input == "exit") exit else parse(input)
+    } yield recurse(env)
+
+    recurse(EmptyEnv)
+  }
+
+  def parse(input: String) = Parse(input) match {
+    case failure: Parsed.Failure =>
+      putStrLn(failure.msg)
+    case Parsed.Success(value, _) =>
+      putStrLn(Show[Expr](value))
+  }
+
+  def exit = {
+    putStrLn("exit")
+    ZIO.fail(())
   }
 }

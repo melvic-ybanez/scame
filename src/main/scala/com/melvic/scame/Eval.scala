@@ -6,7 +6,8 @@ import com.melvic.scame.Expr._
 import zio.{IO, ZIO}
 
 object Eval {
-  type Evaluation = ZIO[EvalConfig, ErrorCode, Expr]
+  type EvaluationE[E <: Expr] = ZIO[EvalConfig, ErrorCode, E]
+  type Evaluation = EvaluationE[Expr]
   type PartialEval = PartialFunction[Expr, Evaluation]
 
   final case class EvalConfig(expr: Expr, env: Env)
@@ -64,39 +65,39 @@ object Eval {
       def recurse(env: Env): (SList, SList) => ZIO[EvalConfig, ErrorCode, Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
         case (Cons(Symbol(param), t), Cons(arg, t1)) => for {
-          a <- Eval(arg)
-          e <- register(param, a)
-          r <- recurse(e)(t, t1)
-        } yield r
+          evaluatedArg <- Eval(arg)
+          newEnv <- register(param, evaluatedArg)
+          result <- recurse(newEnv)(t, t1)
+        } yield result
         case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h.toString).invalid
       }
 
       for {
-        ec <- ZIO.environment[EvalConfig]
-        e <- recurse(ec.env)(params, args)
-        b <- Eval(body, e)
-      } yield b
+        config <- ZIO.environment[EvalConfig]
+        env <- recurse(config.env)(params, args)
+        result <- Eval(body, env)
+      } yield result
 
     // If the parameter is a symbol instead of a list, set it to the
     // whole argument list.
     case Cons(Lambda(Symbol(param), body), args) =>
       for {
-        a <- args.asScalaList.foldLeft[ZIO[EvalConfig, ErrorCode, SList]](SNil.valid) {
+        argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) {
           case (acc, arg) => for {
-            t <- acc
-            h <- Eval(arg)
-          } yield Cons(h, t)
+            tail <- acc
+            head <- Eval(arg)
+          } yield Cons(head, tail)
         }
-        e <- register(param, a)
-        b <- Eval(body, e)
-      } yield b
+        env <- register(param, argList)
+        result <- Eval(body, env)
+      } yield result
   }
 
   def quote: PartialEval = {
     case Cons(Quote, Cons(arg, _)) => arg.valid
   }
 
-  def provideNameToEnv[Err <: ErrorCode, A](name: String, env: ZIO[EnvConfig, Err, A] ) =
+  def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
     env.provideSome[EvalConfig](e => (name, e.env))
 
   def register(name: String, expr: Expr) = provideNameToEnv(name, Env.register(expr))
