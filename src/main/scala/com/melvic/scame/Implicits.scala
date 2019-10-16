@@ -1,17 +1,17 @@
 package com.melvic.scame
 
-import com.melvic.scame.Eval.EvalResult
 import com.melvic.scame.Expr.{Cons, SList, SNil}
+import zio.{IO, ZIO}
 
 import scala.annotation.tailrec
 
 trait Implicits {
   implicit class ExprAsResult[E <: Expr](expr: E) {
-    def valid: EvalResult = Right(expr)
+    def valid = ZIO.succeed(expr)
   }
 
   implicit class ErrorCodeAsResult[E <: ErrorCode](error: E) {
-    def invalid[A]: ErrorOr[A] = Left(error)
+    def invalid = ZIO.fail(error)
   }
 
   implicit class SListToScalaList(list: SList) {
