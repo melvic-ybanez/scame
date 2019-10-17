@@ -1,5 +1,7 @@
 package com.melvic.scame
 
-object Main {
-  def main(args: Array[String]): Unit = ()
+import zio._
+
+object Main extends App {
+  override def run(args: List[String]) = REPL().fold(_ => 1, _ => 0)
 }

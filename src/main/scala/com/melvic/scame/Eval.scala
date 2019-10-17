@@ -6,15 +6,15 @@ import com.melvic.scame.Expr._
 import zio.{IO, ZIO}
 
 object Eval {
-  type EvaluationE[E <: Expr] = ZIO[EvalConfig, ErrorCode, E]
+  type EvaluationE[E] = ZIO[EvalConfig, ErrorCode, E]
   type Evaluation = EvaluationE[Expr]
   type PartialEval = PartialFunction[Expr, Evaluation]
 
   final case class EvalConfig(expr: Expr, env: Env)
 
-  def apply(expr: Expr, env: Env) = apply.provide(EvalConfig(expr, env))
+  def apply(expr: Expr, env: Env): Evaluation = apply.provide(EvalConfig(expr, env))
 
-  def apply(expression: Expr) =
+  def apply(expression: Expr): Evaluation =
     apply.provideSome[EvalConfig](_.copy(expr = expression))
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
@@ -62,7 +62,7 @@ object Eval {
   def lambda: PartialEval = {
     case Cons(Lambda, Cons(params, body)) => Lambda(params, body).valid
     case Cons(Lambda(params: SList, body), args: SList) =>
-      def recurse(env: Env): (SList, SList) => ZIO[EvalConfig, ErrorCode, Env] = {
+      def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
         case (Cons(Symbol(param), t), Cons(arg, t1)) => for {
           evaluatedArg <- Eval(arg)
