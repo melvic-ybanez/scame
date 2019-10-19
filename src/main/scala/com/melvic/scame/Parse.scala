@@ -3,16 +3,22 @@ package com.melvic.scame
 import fastparse._
 import ScriptWhitespace._
 import com.melvic.scame.Expr.{SChar, SFalse, STrue}
+import Literals._
 
 object Parse {
-  def sTrue[_: P] = P(Constants.TrueLiteral).map(_ => STrue)
-  def sFalse[_: P] = P(Constants.FalseLiteral).map(_ => SFalse)
+  def sTrue[_: P] = P(TrueLiteral).map(_ => STrue)
+  def sFalse[_: P] = P(FalseLiteral).map(_ => SFalse)
   def boolean[_: P] = P(sTrue | sFalse)
 
-  def newline[_: P] = P("#\\newline").map(_ => SChar("\n"))
-  def tab[_: P] = P("#\\tab").map(_ => SChar("\t"))
-  def space[_: P] = P("#\\ " | "#\\space").map(_ => SChar(" "))
-  def backspace[_: P] = P("#\\backspace").map(_ => SChar("\b"))
+  lazy val specialCharsMap = SpecialCharacters.map { case (k, v) => (v, k) }
+
+  def specialCharParser[_: P](value: String) =
+    P(s"#\\$value").map(_ => SChar(specialCharsMap(value)))
+
+  def newline[_: P] = specialCharParser("newline")
+  def tab[_: P] = specialCharParser("tab")
+  def space[_: P] = specialCharParser("space")
+  def backspace[_: P] = specialCharParser("backspace")
 
   def specialCharacter[_: P] = P(newline | tab | space | backspace)
 
