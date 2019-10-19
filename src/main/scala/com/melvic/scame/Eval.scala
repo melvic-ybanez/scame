@@ -12,7 +12,7 @@ object Eval {
 
   final case class EvalConfig(expr: Expr, env: Env)
 
-  def apply(expr: Expr, env: Env): Evaluation = apply.provide(EvalConfig(expr, env))
+  def apply(expr: Expr, env: Env): Evaluation = Eval.apply.provide(EvalConfig(expr, env))
 
   def apply(expression: Expr): Evaluation =
     apply.provideSome[EvalConfig](_.copy(expr = expression))
@@ -20,7 +20,7 @@ object Eval {
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
     val eval = atom orElse symbol orElse
       emptyList orElse pair orElse
-      define orElse lambda orElse
+      define orElse sLambda orElse
       quote
     eval(expr)
   }
@@ -59,13 +59,13 @@ object Eval {
     case Define(name, value) => register(name, value).map(Definition)
   }
 
-  def lambda: PartialEval = {
+ def sLambda: PartialEval = {
     case Cons(Lambda, Cons(params, body)) => Lambda(params, body).valid
     case Cons(Lambda(params: SList, body), args: SList) =>
       def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
         case (Cons(Symbol(param), t), Cons(arg, t1)) => for {
-          evaluatedArg <- Eval(arg)
+          evaluatedArg <- Eval.apply(arg)
           newEnv <- register(param, evaluatedArg)
           result <- recurse(newEnv)(t, t1)
         } yield result
@@ -75,7 +75,7 @@ object Eval {
       for {
         config <- ZIO.environment[EvalConfig]
         env <- recurse(config.env)(params, args)
-        result <- Eval(body, env)
+        result <- Eval.apply(body, env)
       } yield result
 
     // If the parameter is a symbol instead of a list, set it to the
@@ -85,7 +85,7 @@ object Eval {
         argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) {
           case (acc, arg) => for {
             tail <- acc
-            head <- Eval(arg)
+            head <- Eval.apply(arg)
           } yield Cons(head, tail)
         }
         env <- register(param, argList)

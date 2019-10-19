@@ -12,7 +12,7 @@ object REPL {
   // TODO: Update the env in every iteration
   def apply() = {
     def recurse(env: Env): ZIO[Console, Any, Unit]  = for {
-      _ <- putStrLn("> ")
+      _ <- putStr("> ")
       input <- getStrLn
       _ <- if (input == "exit") exit else parse(input)
     } yield recurse(env)
@@ -27,8 +27,5 @@ object REPL {
       putStrLn(Show[Expr](value))
   }
 
-  def exit = {
-    putStrLn("exit")
-    ZIO.fail(())
-  }
+  def exit = putStrLn("Bye!")
 }
