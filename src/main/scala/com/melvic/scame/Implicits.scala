@@ -25,6 +25,12 @@ trait Implicits {
       recurse(list, Nil)
     }
   }
+
+  implicit class ScalaListToSList(list: List[SExpr]) {
+    def asSList: SList = list.foldLeft[SList](SNil) { (acc, expr) =>
+      Cons(expr, acc)
+    }
+  }
 }
 
 object Implicits extends Implicits

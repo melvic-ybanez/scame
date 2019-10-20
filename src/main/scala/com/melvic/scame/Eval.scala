@@ -82,8 +82,8 @@ object Eval {
     // whole argument list.
     case Cons(Lambda(Symbol(param), body), args) =>
       for {
-        argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) {
-          case (acc, arg) => for {
+        argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) { (acc, arg) =>
+          for {
             tail <- acc
             head <- Eval.apply(arg)
           } yield Cons(head, tail)

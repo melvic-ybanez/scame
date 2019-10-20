@@ -1,6 +1,6 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr.{Atom, SBoolean, SChar, SFalse, SInt, SNumber, SRational, SReal, STrue}
+import com.melvic.scame.SExpr.{Atom, SBoolean, SChar, SFalse, SInt, SList, SNumber, SRational, SReal, STrue}
 import Literals._
 
 trait ShowInstances {
@@ -26,6 +26,11 @@ trait ShowInstances {
     case int: SInt => showInt(int)
     case rat: SRational => showRational(rat)
     case real: SReal => showReal(real)
+  }
+
+  implicit def showList(implicit showExpr: Show[SExpr]): Show[SList] = { expr =>
+    val exprs = expr.asScalaList.map(showExpr).mkString(" ")
+    s"($exprs)"
   }
 
   implicit def showExpr(implicit showBoolean: Show[SBoolean],

@@ -2,7 +2,7 @@ package com.melvic.scame
 
 import fastparse._
 import ScriptWhitespace._
-import com.melvic.scame.SExpr.{SChar, SFalse, SInt, SRational, SReal, STrue}
+import com.melvic.scame.SExpr._
 import Literals._
 
 object Parse {
@@ -35,7 +35,10 @@ object Parse {
 
   def character[_: P] = P(specialCharacter | regularChar)
 
-  def expression[_: P]: P[SExpr] = P(boolean | number | character)
+  def string[_: P] = P("\"" ~ AnyChar.rep(0).! ~ "\"").map(
+    _.toList.map(c => SChar(c.toString)).asSList)
+
+  def expression[_: P]: P[SExpr] = P(boolean | number | character | string)
 
   def apply(input: String) = parse(input, expression(_))
 }

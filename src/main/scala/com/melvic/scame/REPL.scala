@@ -20,7 +20,7 @@ object REPL {
 
   def parse(input: String) = Parse(input) match {
     case failure: Parsed.Failure =>
-      putStrLn(failure.msg).flatMap(_ => ZIO.succeed(None))
+      putStrLn(s"Parse Error: ${failure.msg}").flatMap(_ => ZIO.succeed(None))
     case Parsed.Success(value, _) => for {
       _ <- putStrLn(Show[SExpr](value))
       newEnv <- ZIO.succeed(value match {
