@@ -7,14 +7,14 @@ sealed trait Env
 
 object Env {
   type EnvConfig = (String, Env)
-  type ReadEnv = ZIO[EnvConfig, SymbolNotFound, Expr]
+  type ReadEnv = ZIO[EnvConfig, SymbolNotFound, SExpr]
 
   case object EmptyEnv extends Env
 
-  final case class NonEmptyEnv(lookup: Map[String, Expr], parent: Env) extends Env
+  final case class NonEmptyEnv(lookup: Map[String, SExpr], parent: Env) extends Env
 
-  def register(expr: Expr): ZIO[EnvConfig, SymbolAlreadyExists, Env] = {
-    val add: ZIO[EnvConfig, Expr, Env] = for {
+  def register(expr: SExpr): ZIO[EnvConfig, SymbolAlreadyExists, Env] = {
+    val add: ZIO[EnvConfig, SExpr, Env] = for {
       _ <- localSearch.flip
       env <- ZIO.access[EnvConfig] {
         case (name, EmptyEnv) => NonEmptyEnv(Map(name -> expr), EmptyEnv)

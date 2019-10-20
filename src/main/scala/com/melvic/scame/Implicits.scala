@@ -1,12 +1,12 @@
 package com.melvic.scame
 
-import com.melvic.scame.Expr.{Cons, SList, SNil}
+import com.melvic.scame.SExpr.{Cons, SList, SNil}
 import zio.{IO, ZIO}
 
 import scala.annotation.tailrec
 
 trait Implicits {
-  implicit class ExprAsResult[E <: Expr](expr: E) {
+  implicit class ExprAsResult[E <: SExpr](expr: E) {
     def valid = ZIO.succeed(expr)
   }
 
@@ -15,9 +15,9 @@ trait Implicits {
   }
 
   implicit class SListToScalaList(list: SList) {
-    def asScalaList: List[Expr] = {
+    def asScalaList: List[SExpr] = {
       @tailrec
-      def recurse(sList: SList, acc: List[Expr]): List[Expr] = sList match {
+      def recurse(sList: SList, acc: List[SExpr]): List[SExpr] = sList match {
         case SNil => acc
         case Cons(head, tail) => recurse(tail, head :: acc)
       }

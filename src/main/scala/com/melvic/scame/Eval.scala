@@ -2,19 +2,19 @@ package com.melvic.scame
 
 import com.melvic.scame.Env.{EnvConfig, ReadEnv}
 import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, SymbolNotFound}
-import com.melvic.scame.Expr._
+import com.melvic.scame.SExpr._
 import zio.{IO, ZIO}
 
 object Eval {
   type EvaluationE[E] = ZIO[EvalConfig, ErrorCode, E]
-  type Evaluation = EvaluationE[Expr]
-  type PartialEval = PartialFunction[Expr, Evaluation]
+  type Evaluation = EvaluationE[SExpr]
+  type PartialEval = PartialFunction[SExpr, Evaluation]
 
-  final case class EvalConfig(expr: Expr, env: Env)
+  final case class EvalConfig(expr: SExpr, env: Env)
 
-  def apply(expr: Expr, env: Env): Evaluation = Eval.apply.provide(EvalConfig(expr, env))
+  def apply(expr: SExpr, env: Env): Evaluation = Eval.apply.provide(EvalConfig(expr, env))
 
-  def apply(expression: Expr): Evaluation =
+  def apply(expression: SExpr): Evaluation =
     apply.provideSome[EvalConfig](_.copy(expr = expression))
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
@@ -100,5 +100,5 @@ object Eval {
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
     env.provideSome[EvalConfig](e => (name, e.env))
 
-  def register(name: String, expr: Expr) = provideNameToEnv(name, Env.register(expr))
+  def register(name: String, expr: SExpr) = provideNameToEnv(name, Env.register(expr))
 }

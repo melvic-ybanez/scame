@@ -1,7 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Env.EmptyEnv
-import com.melvic.scame.Expr.Definition
+import com.melvic.scame.SExpr.Definition
 import fastparse.Parsed
 import zio.ZIO
 import zio.console._
@@ -22,7 +22,7 @@ object REPL {
     case failure: Parsed.Failure =>
       putStrLn(failure.msg).flatMap(_ => ZIO.succeed(None))
     case Parsed.Success(value, _) => for {
-      _ <- putStrLn(Show[Expr](value))
+      _ <- putStrLn(Show[SExpr](value))
       newEnv <- ZIO.succeed(value match {
         case Definition(env) => Some(env)
         case _ => None

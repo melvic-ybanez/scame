@@ -2,13 +2,22 @@ package com.melvic.scame
 
 import fastparse._
 import ScriptWhitespace._
-import com.melvic.scame.Expr.{SChar, SFalse, STrue}
+import com.melvic.scame.SExpr.{SChar, SFalse, SInt, SRational, SReal, STrue}
 import Literals._
 
 object Parse {
   def sTrue[_: P] = P(TrueLiteral).map(_ => STrue)
   def sFalse[_: P] = P(FalseLiteral).map(_ => SFalse)
   def boolean[_: P] = P(sTrue | sFalse)
+
+  def integer[_: P] = P(CharsWhileIn("0-9").!).map(i => SInt(i.toInt))
+  def rational[_: P] = P(integer ~ "/" ~ integer).map { case (SInt(n), SInt(d)) =>
+    SRational(n, d)
+  }
+  def real[_: P] = P(integer ~ "." ~ integer).map { case (SInt(n), SInt(d)) =>
+    SReal(n, d)
+  }
+  def number[_: P] = P(rational | real | integer)
 
   lazy val specialCharsMap = SpecialCharacters.map { case (k, v) => (v, k) }
 
@@ -26,7 +35,7 @@ object Parse {
 
   def character[_: P] = P(specialCharacter | regularChar)
 
-  def expression[_: P]: P[Expr] = P(boolean | character)
+  def expression[_: P]: P[SExpr] = P(boolean | number | character)
 
   def apply(input: String) = parse(input, expression(_))
 }
