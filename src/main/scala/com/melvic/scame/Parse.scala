@@ -35,7 +35,7 @@ object Parse {
 
   def character[_: P] = P(specialCharacter | regularChar)
 
-  def string[_: P] = P("\"" ~ AnyChar.rep(0).! ~ "\"").map(
+  def string[_: P] = P("\"" ~~ CharsWhile(c => c != '\"' && c != '\"').! ~~ "\"").map(
     _.toList.map(c => SChar(c.toString)).asSList)
 
   def expression[_: P]: P[SExpr] = P(boolean | number | character | string)

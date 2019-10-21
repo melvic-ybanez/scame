@@ -28,16 +28,15 @@ trait ShowInstances {
     case real: SReal => showReal(real)
   }
 
-  implicit def showList(implicit showExpr: Show[SExpr]): Show[SList] = { expr =>
-    val exprs = expr.asScalaList.map(showExpr).mkString(" ")
-    s"($exprs)"
-  }
-
-  implicit def showExpr(implicit showBoolean: Show[SBoolean],
+  implicit def showNonListExpr(implicit showBoolean: Show[SBoolean],
       showCharacter: Show[SChar], showNumber: Show[SNumber]): Show[SExpr] = {
     case boolean: SBoolean => showBoolean(boolean)
     case char: SChar => showCharacter(char)
     case number: SNumber => showNumber(number)
+    case expr: SList =>
+      val showExpr = showNonListExpr
+      val exprs = expr.asScalaList.map(expr => showExpr(expr)).mkString(" ")
+      s"($exprs)"
   }
 }
 
