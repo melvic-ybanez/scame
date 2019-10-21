@@ -1,6 +1,6 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr.{Atom, SBoolean, SChar, SFalse, SInt, SList, SNumber, SRational, SReal, STrue}
+import com.melvic.scame.SExpr.{Atom, SBoolean, SChar, SFalse, SInt, SList, SNumber, SRational, SReal, SSymbol, STrue}
 import Literals._
 
 trait ShowInstances {

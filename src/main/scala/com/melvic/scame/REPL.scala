@@ -23,6 +23,8 @@ object REPL {
       putStrLn(s"Parse Error: ${failure.msg}").flatMap(_ => ZIO.succeed(None))
     case Parsed.Success(value, _) => for {
       _ <- putStrLn(Show[SExpr](value))
+
+      // TODO: Evaluate the value using Eval
       newEnv <- ZIO.succeed(value match {
         case Definition(env) => Some(env)
         case _ => None

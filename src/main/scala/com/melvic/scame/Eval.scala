@@ -27,7 +27,7 @@ object Eval {
 
   def atom: PartialEval = { case atom: Atom => atom.valid }
 
-  def symbol: PartialEval = { case Symbol(name) =>
+  def symbol: PartialEval = { case SSymbol(name) =>
     provideNameToEnv(name, Env.globalSearch)
   }
 
@@ -49,8 +49,8 @@ object Eval {
   }
 
   def define: PartialEval = {
-    case Cons(Define, Cons(Symbol(name), SNil)) => Eval(Define(name, SNil))
-    case Cons(Define, Cons(Symbol(name), Cons(value, SNil))) => Eval(value).flatMap { v =>
+    case Cons(Define, Cons(SSymbol(name), SNil)) => Eval(Define(name, SNil))
+    case Cons(Define, Cons(SSymbol(name), Cons(value, SNil))) => Eval(value).flatMap { v =>
       Eval(Define(name, v))
     }
     case Cons(Define, body) => ExprMismatch(
@@ -64,7 +64,7 @@ object Eval {
     case Cons(Lambda(params: SList, body), args: SList) =>
       def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
-        case (Cons(Symbol(param), t), Cons(arg, t1)) => for {
+        case (Cons(SSymbol(param), t), Cons(arg, t1)) => for {
           evaluatedArg <- Eval.apply(arg)
           newEnv <- register(param, evaluatedArg)
           result <- recurse(newEnv)(t, t1)
@@ -80,7 +80,7 @@ object Eval {
 
     // If the parameter is a symbol instead of a list, set it to the
     // whole argument list.
-    case Cons(Lambda(Symbol(param), body), args) =>
+    case Cons(Lambda(SSymbol(param), body), args) =>
       for {
         argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) { (acc, arg) =>
           for {

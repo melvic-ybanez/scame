@@ -2,7 +2,7 @@ package com.melvic.scame
 
 import fastparse._
 import ScriptWhitespace._
-import com.melvic.scame.SExpr._
+import com.melvic.scame.SExpr.{Define, Quote, _}
 import Literals._
 
 object Parse {
@@ -35,10 +35,25 @@ object Parse {
 
   def character[_: P] = P(specialCharacter | regularChar)
 
-  def string[_: P] = P("\"" ~~ CharsWhile(c => c != '\"' && c != '\"').! ~~ "\"").map(
+  /**
+   * Matches any name that starts with an underscore, dollar sign,
+   * or alpha-character.
+   * Note: This is subject to change in the future.
+   */
+  def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~ AnyChar.rep(0)).!).map(SSymbol)
+
+  def string[_: P] = P("\"" ~~ CharsWhile(_ != '\"').! ~~ "\"").map(
     _.toList.map(c => SChar(c.toString)).asSList)
 
-  def expression[_: P]: P[SExpr] = P(boolean | number | character | string)
+  def define[_: P] = P(DefineLiteral).map(_ => Define)
+  def quote[_: P] = P(QuoteLiteral).map(_ => Quote)
+  def sLambda[_: P] = P(LambdaLiteral).map(_ => Lambda)
+
+  def specialForm[_: P] = P(define | quote | sLambda)
+
+  def sList[_: P] = P("(" ~ expression.rep(0) ~ ")").map(_.toList.asSList)
+
+  def expression[_: P]: P[SExpr] = P(boolean | number | character | string | specialForm | sList | symbol)
 
   def apply(input: String) = parse(input, expression(_))
 }

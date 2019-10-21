@@ -13,7 +13,7 @@ object SExpr {
 
   final case class SChar(value: String) extends SExpr
 
-  final case class Symbol(name: String) extends SExpr
+  final case class SSymbol(name: String) extends SExpr
 
   // TODO: Add support for complex numbers, and other base format (binary, hex, etc.)
   sealed trait SNumber extends Atom
