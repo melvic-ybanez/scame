@@ -12,12 +12,12 @@ object Eval {
 
   final case class EvalConfig(expr: SExpr, env: Env)
 
-  def apply(expr: SExpr, env: Env): Evaluation = Eval.apply.provide(EvalConfig(expr, env))
+  def eval(expr: SExpr, env: Env): Evaluation = evaluator.provide(EvalConfig(expr, env))
 
-  def apply(expression: SExpr): Evaluation =
-    apply.provideSome[EvalConfig](_.copy(expr = expression))
+  def eval(expression: SExpr): Evaluation =
+    evaluator.provideSome[EvalConfig](_.copy(expr = expression))
 
-  def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
+  def evaluator: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
     val eval = atom orElse symbol orElse
       emptyList orElse pair orElse
       define orElse sLambda orElse
@@ -36,8 +36,8 @@ object Eval {
   def pair: PartialEval = {
     case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).invalid
     case Cons(Cons, Cons(head, tail)) => for {
-      h <- Eval(head)
-      t <- Eval(tail)
+      h <- eval(head)
+      t <- eval(tail)
     } yield t match {
       // If the tail is a list, the whole cons is a proper list.
       case tList: SList => Cons(h, tList)
@@ -49,9 +49,9 @@ object Eval {
   }
 
   def define: PartialEval = {
-    case Cons(Define, Cons(SSymbol(name), SNil)) => Eval(Define(name, SNil))
-    case Cons(Define, Cons(SSymbol(name), Cons(value, SNil))) => Eval(value).flatMap { v =>
-      Eval(Define(name, v))
+    case Cons(Define, Cons(SSymbol(name), SNil)) => eval(Define(name, SNil))
+    case Cons(Define, Cons(SSymbol(name), Cons(value, SNil))) => eval(value).flatMap { v =>
+      eval(Define(name, v))
     }
     case Cons(Define, body) => ExprMismatch(
       Constants.Symbol +: Constants.Pair +: Vector(),
@@ -65,7 +65,7 @@ object Eval {
       def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
         case (Cons(SSymbol(param), t), Cons(arg, t1)) => for {
-          evaluatedArg <- Eval.apply(arg)
+          evaluatedArg <- eval(arg)
           newEnv <- register(param, evaluatedArg)
           result <- recurse(newEnv)(t, t1)
         } yield result
@@ -75,7 +75,7 @@ object Eval {
       for {
         config <- ZIO.environment[EvalConfig]
         env <- recurse(config.env)(params, args)
-        result <- Eval.apply(body, env)
+        result <- eval(body, env)
       } yield result
 
     // If the parameter is a symbol instead of a list, set it to the
@@ -85,11 +85,11 @@ object Eval {
         argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) { (acc, arg) =>
           for {
             tail <- acc
-            head <- Eval.apply(arg)
+            head <- eval(arg)
           } yield Cons(head, tail)
         }
         env <- register(param, argList)
-        result <- Eval(body, env)
+        result <- eval(body, env)
       } yield result
   }
 
