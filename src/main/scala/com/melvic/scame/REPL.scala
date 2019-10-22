@@ -8,6 +8,9 @@ import zio.{Runtime, ZIO}
 import zio.console._
 import zio.internal.PlatformLive
 
+/**
+ * Implementation for Scheme's Read-Eval-Print-Loop
+ */
 object REPL {
   def apply() = {
     def recurse(env: Env): ZIO[Console, Any, Unit]  = for {
@@ -23,18 +26,29 @@ object REPL {
   def parse(input: String, env: Env) = Parse(input) match {
     case failure: Parsed.Failure =>
       putStrLn(s"Parse Error: ${failure.msg}").flatMap(_ => ZIO.succeed(None))
-    case Parsed.Success(value, _) =>
-      val runtime: Runtime[EvalConfig] = Runtime(EvalConfig(value, env), PlatformLive.Default)
-      val result = runtime.unsafeRun(Eval.evaluator)
-
-      for {
-      _ <- putStrLn(Show[SExpr](value))
-      newEnv <- ZIO.succeed(result match {
-        case Definition(env) => Some(env)
-        case _ => None
-      })
+    case Parsed.Success(value, _) => for {
+      result <- Eval.apply.provide(EvalConfig(value, env)).either
+      newEnv <- result match {
+        case Left(err) => error(err)
+        case Right(sexpr) => success(sexpr)
+      }
     } yield newEnv
   }
 
   def exit = putStrLn("Bye!").flatMap(_ => ZIO.fail(None))
+
+  def error(err: ErrorCode) = for {
+    _ <- putStrLn(Show[ErrorCode](err))
+
+    // Return succeed to avoid breaking out of the REPL
+    n <- ZIO.succeed(None)
+  } yield n
+
+  def success(sexpr: SExpr) = for {
+    _ <- putStrLn(Show[SExpr](sexpr))
+    newEnv <- ZIO.succeed(sexpr match {
+      case Definition(newEnv) => Some(newEnv)
+      case _ => None
+    })
+  } yield newEnv
 }

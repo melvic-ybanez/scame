@@ -1,9 +1,9 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr.{Atom, SBoolean, SChar, SFalse, SInt, SList, SNumber, SRational, SReal, SSymbol, STrue}
-import Literals._
+import com.melvic.scame.Literals.{FalseLiteral, SpecialCharacters, TrueLiteral}
+import com.melvic.scame.SExpr.{SBoolean, SChar, SFalse, SInt, SList, SNumber, SRational, SReal, STrue}
 
-trait ShowInstances {
+trait SExprInstances {
   implicit val showBoolean: Show[SBoolean] = {
     case STrue => TrueLiteral
     case SFalse => FalseLiteral
@@ -28,16 +28,14 @@ trait ShowInstances {
     case real: SReal => showReal(real)
   }
 
-  implicit def showNonListExpr(implicit showBoolean: Show[SBoolean],
+  implicit def showSExpr(implicit showBoolean: Show[SBoolean],
       showCharacter: Show[SChar], showNumber: Show[SNumber]): Show[SExpr] = {
     case boolean: SBoolean => showBoolean(boolean)
     case char: SChar => showCharacter(char)
     case number: SNumber => showNumber(number)
     case expr: SList =>
-      val showExpr = showNonListExpr
+      val showExpr = showSExpr
       val exprs = expr.asScalaList.map(expr => showExpr(expr)).mkString(" ")
       s"($exprs)"
   }
 }
-
-object ShowInstances extends ShowInstances
