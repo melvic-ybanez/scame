@@ -27,6 +27,8 @@ object Eval {
 
   def atom: PartialEval = { case atom: Atom => atom.valid }
 
+  // TODO: Special forms like define, symbol, etc should
+  //  have a default value that displays "#<Syntax name-of-the-form>"
   def symbol: PartialEval = { case SSymbol(name) =>
     provideNameToEnv(name, Env.globalSearch)
   }

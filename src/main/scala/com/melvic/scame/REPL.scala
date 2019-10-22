@@ -23,31 +23,23 @@ object REPL {
   }
 
   def parse(input: String, env: Env) = Parse(input) match {
-    case failure: Parsed.Failure =>
-      putStrLn(s"Parse Error: ${failure.msg}").flatMap(_ => ZIO.succeed(None))
+    case failure: Parsed.Failure => output(s"Parse Error: ${failure.msg}")
     case Parsed.Success(value, _) => for {
       result <- Eval.apply.provide(EvalConfig(value, env)).either
       newEnv <- result match {
-        case Left(err) => error(err)
-        case Right(sexpr) => success(sexpr)
+        case Left(err) => output(Show[ErrorCode](err))
+        case Right(sexpr) => output(Show[SExpr](sexpr), sexpr match {
+          case Definition(newEnv) => Some(newEnv)
+          case _ => None
+        })
       }
     } yield newEnv
   }
 
   def exit = putStrLn("Bye!").flatMap(_ => ZIO.fail(None))
 
-  def error(err: ErrorCode) = for {
-    _ <- putStrLn(Show[ErrorCode](err))
-
-    // Return succeed to avoid breaking out of the REPL
-    n <- ZIO.succeed(None)
+  def output(msg: String, r: => Option[Env] = None) = for {
+    _ <- putStrLn(msg)
+    n <- ZIO.succeed(r)
   } yield n
-
-  def success(sexpr: SExpr) = for {
-    _ <- putStrLn(Show[SExpr](sexpr))
-    newEnv <- ZIO.succeed(sexpr match {
-      case Definition(newEnv) => Some(newEnv)
-      case _ => None
-    })
-  } yield newEnv
 }
