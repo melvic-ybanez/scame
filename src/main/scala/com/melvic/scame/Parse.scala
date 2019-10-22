@@ -51,7 +51,7 @@ object Parse {
 
   def specialForm[_: P] = P(define | quote | sLambda)
 
-  def sList[_: P] = P("(" ~ expression.rep(0) ~ ")").map(_.toList.asSList)
+  def sList[_: P] = P("(" ~ expression.rep ~ ")").map(_.toList.asSList)
 
   def expression[_: P]: P[SExpr] = P(boolean | number | character | string | specialForm | sList | symbol)
 

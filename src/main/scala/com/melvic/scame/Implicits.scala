@@ -1,7 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.SExpr.{Cons, SList, SNil}
-import zio.{IO, ZIO}
+import zio.ZIO
 
 import scala.annotation.tailrec
 
@@ -32,5 +32,3 @@ trait Implicits {
     }
   }
 }
-
-object Implicits extends Implicits

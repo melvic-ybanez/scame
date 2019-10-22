@@ -1,6 +1,7 @@
-package com.melvic.scame
+package com.melvic.scame.instances
 
 import com.melvic.scame.ErrorCode.SymbolNotFound
+import com.melvic.scame.{ErrorCode, Show}
 
 trait ErrorCodeInstances {
   implicit val showSymbolNotFound: Show[SymbolNotFound] = symbol =>

@@ -4,9 +4,8 @@ import com.melvic.scame.Env.EmptyEnv
 import com.melvic.scame.Eval.EvalConfig
 import com.melvic.scame.SExpr.Definition
 import fastparse.Parsed
-import zio.{Runtime, ZIO}
+import zio.ZIO
 import zio.console._
-import zio.internal.PlatformLive
 
 /**
  * Implementation for Scheme's Read-Eval-Print-Loop

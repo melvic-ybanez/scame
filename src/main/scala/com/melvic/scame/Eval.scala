@@ -1,9 +1,9 @@
 package com.melvic.scame
 
-import com.melvic.scame.Env.{EnvConfig, ReadEnv}
-import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, SymbolNotFound}
+import com.melvic.scame.Env.EnvConfig
+import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount}
 import com.melvic.scame.SExpr._
-import zio.{IO, ZIO}
+import zio.ZIO
 
 object Eval {
   type EvaluationE[E] = ZIO[EvalConfig, ErrorCode, E]
