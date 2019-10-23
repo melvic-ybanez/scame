@@ -41,7 +41,7 @@ object Parse {
    * Note: This is subject to change in the future.
    */
   def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~
-    CharsWhile(c => !"\"\'()".contains(c)).rep).!).map(SSymbol)
+    CharsWhile(c => invalidSymbol.contains(c.toString)).rep).!).map(SSymbol)
 
   def string[_: P] = P("\"" ~~ CharsWhile(_ != '\"').! ~~ "\"").map(
     _.toList.map(c => SChar(c.toString)).asSList)

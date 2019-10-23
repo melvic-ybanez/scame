@@ -2,7 +2,7 @@ package com.melvic.scame.instances
 
 import com.melvic.scame.Literals.{FalseLiteral, SpecialCharacters, TrueLiteral}
 import com.melvic.scame.SExpr._
-import com.melvic.scame.{SExpr, Show}
+import com.melvic.scame.{Literals, SExpr, Show}
 
 trait SExprInstances {
   implicit val showBoolean: Show[SBoolean] = {
@@ -34,6 +34,7 @@ trait SExprInstances {
     case boolean: SBoolean => showBoolean(boolean)
     case char: SChar => showCharacter(char)
     case number: SNumber => showNumber(number)
+    case _: Definition => Literals.NilLiteral
     case expr: SList =>
       val showExpr = showSExpr
       val exprs = expr.asScalaList.map(expr => showExpr(expr)).mkString(" ")

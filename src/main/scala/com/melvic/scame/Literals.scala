@@ -8,6 +8,11 @@ object Literals {
   val QuoteLiteral = "quote"
   val LambdaLiteral = "lambda"
 
+  val NilLiteral = "()"
+
   val SpecialCharacters = Map("\n" -> "newline",
     "\t" -> "tab", " " -> "space", "\b" -> "backspace")
+
+  val invalidSymbol = "\"\'() ".toList.map(_.toString) ++ List(DefineLiteral,
+    QuoteLiteral, LambdaLiteral, TrueLiteral, FalseLiteral)
 }
