@@ -1,6 +1,6 @@
 package com.melvic.scame.instances
 
-import com.melvic.scame.Literals.{FalseLiteral, SpecialCharacters, TrueLiteral}
+import com.melvic.scame.Literals.{FalseLiteral, TrueLiteral}
 import com.melvic.scame.SExpr._
 import com.melvic.scame.{Literals, SExpr, Show}
 
@@ -10,10 +10,7 @@ trait SExprInstances {
     case SFalse => FalseLiteral
   }
 
-  implicit val showCharacter: Show[SChar] = { char =>
-    val value = SpecialCharacters.getOrElse(char.value, char.value)
-    s"#\\$value"
-  }
+  implicit val showCharacter: Show[SChar] = _.value
 
   implicit val showInteger: Show[SInt] = _.value.toString
   implicit val showRational: Show[SRational] = { case SRational(num, denom) =>

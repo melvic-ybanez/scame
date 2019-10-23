@@ -19,21 +19,9 @@ object Parse {
   }
   def number[_: P] = P(rational | real | integer)
 
-  lazy val specialCharsMap = SpecialCharacters.map { case (k, v) => (v, k) }
+  def specialCharacter[_: P] = P(NewLineLiteral | TabLiteral | SpaceLiteral | BackspaceLiteral)
 
-  def specialCharParser[_: P](value: String) =
-    P(s"#\\$value").map(_ => SChar(specialCharsMap(value)))
-
-  def newline[_: P] = specialCharParser("newline")
-  def tab[_: P] = specialCharParser("tab")
-  def space[_: P] = specialCharParser("space")
-  def backspace[_: P] = specialCharParser("backspace")
-
-  def specialCharacter[_: P] = P(newline | tab | space | backspace)
-
-  def regularChar[_: P] = P("#\\" ~ AnyChar.!).map(SChar)
-
-  def character[_: P] = P(specialCharacter | regularChar)
+  def character[_: P] = P(("#\\" ~ (specialCharacter | AnyChar)).!).map(SChar)
 
   /**
    * Matches any name that starts with an underscore, dollar sign,
@@ -52,11 +40,11 @@ object Parse {
 
   def specialForm[_: P] = P(define | quote | sLambda)
 
-  def atom[_: P]: P[Atom] = P(boolean | number | specialForm)
+  def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
   def sList[_: P]: P[SList] = P("(" ~/ expression.repX(0, sep=" ".repX(1)) ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P(atom | symbol | sList)
+  def expression[_: P]: P[SExpr] = P((atom | symbol | sList) ~ End)
 
   def apply(input: String) = parse(input, expression(_))
 }

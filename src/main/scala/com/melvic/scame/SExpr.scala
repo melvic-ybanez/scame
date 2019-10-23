@@ -11,7 +11,7 @@ object SExpr {
   case object SFalse extends SBoolean
   case object STrue extends SBoolean
 
-  final case class SChar(value: String) extends SExpr
+  final case class SChar(value: String) extends Atom
 
   final case class SSymbol(name: String) extends SExpr
 

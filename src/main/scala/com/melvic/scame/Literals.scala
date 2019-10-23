@@ -10,8 +10,10 @@ object Literals {
 
   val NilLiteral = "()"
 
-  val SpecialCharacters = Map("\n" -> "newline",
-    "\t" -> "tab", " " -> "space", "\b" -> "backspace")
+  val NewLineLiteral = "newline"
+  val TabLiteral = "tab"
+  val SpaceLiteral = "space"
+  val BackspaceLiteral = "backspace"
 
   val invalidSymbol = "\"\'() ".toList.map(_.toString) ++ List(DefineLiteral,
     QuoteLiteral, LambdaLiteral, TrueLiteral, FalseLiteral)
