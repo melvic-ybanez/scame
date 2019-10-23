@@ -31,10 +31,7 @@ object Env {
       ZIO.fromEither(lookup.get(name).toRight(SymbolNotFound(name)))
   }
 
-  def globalSearch: ReadEnv = for {
-    _ <- localSearch
-    global <- localSearch.provideSome[EnvConfig] {
-      case (name, NonEmptyEnv(_, parent)) => (name, parent)
-    }
-  } yield global
+  def globalSearch: ReadEnv = localSearch.orElse(localSearch.provideSome[EnvConfig] {
+    case (name, NonEmptyEnv(_, parent)) => (name, parent)
+  })
 }
