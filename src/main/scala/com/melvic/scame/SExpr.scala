@@ -7,7 +7,7 @@ sealed trait SExpr
 object SExpr {
   sealed trait Atom extends SExpr
 
-  sealed trait SBoolean extends SExpr
+  sealed trait SBoolean extends Atom
   case object SFalse extends SBoolean
   case object STrue extends SBoolean
 
@@ -28,10 +28,10 @@ object SExpr {
   final case class Pair(first: SExpr, second: SExpr) extends SExpr
 
   // Special Forms as heads of the lists
-  case object Define extends SExpr
-  case object Lambda extends SExpr
-  case object Cons extends SExpr
-  case object Quote extends SExpr
+  case object Define extends Atom
+  case object Lambda extends Atom
+  case object Cons extends Atom
+  case object Quote extends Atom
 
   // Special Forms
   final case class Define(name: String, value: SExpr) extends SExpr

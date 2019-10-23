@@ -40,7 +40,8 @@ object Parse {
    * or alpha-character.
    * Note: This is subject to change in the future.
    */
-  def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~ AnyChar.rep(0)).!).map(SSymbol)
+  def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~
+    CharsWhile(c => !"\"\'()".contains(c)).rep).!).map(SSymbol)
 
   def string[_: P] = P("\"" ~~ CharsWhile(_ != '\"').! ~~ "\"").map(
     _.toList.map(c => SChar(c.toString)).asSList)
@@ -51,9 +52,11 @@ object Parse {
 
   def specialForm[_: P] = P(define | quote | sLambda)
 
-  def sList[_: P]: P[SList] = P("(" ~ expression.repX(0, sep = " ") ~ ")").map(_.toList.asSList)
+  def atom[_: P]: P[Atom] = P(boolean | number | specialForm)
 
-  def expression[_: P]: P[SExpr] = P(boolean | number | character | string | sList | specialForm | symbol)
+  def sList[_: P]: P[SList] = P("(" ~/ expression.repX(0, sep=" ".repX(1)) ~ ")").map(_.toList.asSList)
+
+  def expression[_: P]: P[SExpr] = P(atom | symbol | sList)
 
   def apply(input: String) = parse(input, expression(_))
 }
