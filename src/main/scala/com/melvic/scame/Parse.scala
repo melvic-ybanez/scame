@@ -35,8 +35,8 @@ object Parse {
     // Strings are just lists of characters, at least for now.
     // Note that this is subject to change as the goal is to get
     // closer to the standard scheme language design.
-    val str = expr.toList.map(c => SChar(c.toString)).asSList
-    Cons(Quote, str)
+    val str = expr.toList.map(c => SChar(s"#\\$c")).asSList
+    Cons(Quote, Cons(str, SNil))
   }
 
   def define[_: P] = P(DefineLiteral).map(_ => Define)

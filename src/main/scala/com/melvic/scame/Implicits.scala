@@ -27,7 +27,7 @@ trait Implicits {
   }
 
   implicit class ScalaListToSList(list: List[SExpr]) {
-    def asSList: SList = list.reverse.foldLeft[SList](SNil) { (acc, expr) =>
+    def asSList: SList = list.foldLeft[SList](SNil) { (acc, expr) =>
       Cons(expr, acc)
     }
   }

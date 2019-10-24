@@ -1,6 +1,5 @@
 import com.melvic.scame.{Parse, SExpr, Show}
 import fastparse.Parsed
-import fastparse.Parsed.Success
 import org.scalatest.{FlatSpec, Matchers}
 
 class ListSpec extends FlatSpec with Matchers {
