@@ -31,8 +31,13 @@ object Parse {
   def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~
     CharsWhile(c => invalidSymbol.contains(c.toString)).rep).!).map(SSymbol)
 
-  def string[_: P] = P("\"" ~~ CharsWhile(_ != '\"').! ~~ "\"").map(
-    _.toList.map(c => SChar(c.toString)).asSList)
+  def string[_: P] = P("\"" ~~ CharsWhile(_ != '\"').! ~~ "\"").map { expr =>
+    // Strings are just lists of characters, at least for now.
+    // Note that this is subject to change as the goal is to get
+    // closer to the standard scheme language design.
+    val str = expr.toList.map(c => SChar(c.toString)).asSList
+    Cons(Quote, str)
+  }
 
   def define[_: P] = P(DefineLiteral).map(_ => Define)
   def quote[_: P] = P(QuoteLiteral).map(_ => Quote)
@@ -42,9 +47,9 @@ object Parse {
 
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
-  def sList[_: P]: P[SList] = P("(" ~/ expression.repX(0, sep=" ".repX(1)) ~ ")").map(_.toList.asSList)
+  def sList[_: P]: P[SList] = P("(" ~/ expression.repX(0, sep=" ".repX(0)) ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P((atom | symbol | sList) ~ End)
+  def expression[_: P]: P[SExpr] = P((atom | symbol | sList | string) ~ End)
 
   def apply(input: String) = parse(input, expression(_))
 }
