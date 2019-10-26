@@ -34,5 +34,6 @@ object Env {
   def globalSearch: ReadEnv = localSearch.orElse(localSearch.provideSome[EnvConfig] {
     // update the environment to point to the parent
     case (name, NonEmptyEnv(_, parent)) => (name, parent)
+    case env => env
   })
 }

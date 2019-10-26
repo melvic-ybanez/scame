@@ -22,12 +22,12 @@ trait Implicits {
         case Cons(head, tail) => recurse(tail, head :: acc)
       }
 
-      recurse(list, Nil)
+      recurse(list, Nil).reverse
     }
   }
 
   implicit class ScalaListToSList(list: List[SExpr]) {
-    def asSList: SList = list.foldLeft[SList](SNil) { (acc, expr) =>
+    def asSList: SList = list.reverse.foldLeft[SList](SNil) { (acc, expr) =>
       Cons(expr, acc)
     }
   }
