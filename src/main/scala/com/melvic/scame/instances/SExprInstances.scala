@@ -10,27 +10,17 @@ trait SExprInstances {
     case SFalse => FalseLiteral
   }
 
-  implicit val showCharacter: Show[SChar] = _.value
-
-  implicit val showInteger: Show[SInt] = _.value.toString
-  implicit val showRational: Show[SRational] = { case SRational(num, denom) =>
-    s"$num/$denom"
-  }
-  implicit val showReal: Show[SReal] = { case SReal(whole, fractional) =>
-    s"$whole.$fractional"
-  }
-  implicit def showNumber(implicit showInt: Show[SInt],
-      showRational: Show[SRational], showReal: Show[SReal]): Show[SNumber] = {
-    case int: SInt => showInt(int)
-    case rat: SRational => showRational(rat)
-    case real: SReal => showReal(real)
+  implicit val showNumber: Show[SNumber] = {
+    case SInt(value) => value.toString
+    case SRational(num, denom) => s"$num/$denom"
+    case SReal(whole, fractional) => s"$whole.$fractional"
   }
 
-  implicit def showSExpr(implicit showBoolean: Show[SBoolean],
-      showCharacter: Show[SChar], showNumber: Show[SNumber]): Show[SExpr] = {
+  implicit def showSExpr(implicit showBoolean: Show[SBoolean], showNumber: Show[SNumber]): Show[SExpr] = {
     case boolean: SBoolean => showBoolean(boolean)
-    case char: SChar => showCharacter(char)
+    case SChar(value) => value
     case number: SNumber => showNumber(number)
+    case SSymbol(name) => name
     case _: Definition => Literals.NilLiteral
     case expr: SList =>
       val showExpr = showSExpr

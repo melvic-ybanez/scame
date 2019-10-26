@@ -46,11 +46,13 @@ object Parse {
 
   def specialForm[_: P] = P(define | quote | sLambda)
 
+  def quoteSugar[_: P] = P("'" ~ expression).map(expr => Cons(Quote, Cons(expr, SNil)))
+
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
   def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=spaces) ~ spaces ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P(spaces ~ (atom | sList | symbol | string) ~ spaces)
+  def expression[_: P]: P[SExpr] = P(spaces ~ (atom | sList | symbol | string | quoteSugar) ~ spaces)
 
   def apply(input: String) = parse(input, expression(_))
 }
