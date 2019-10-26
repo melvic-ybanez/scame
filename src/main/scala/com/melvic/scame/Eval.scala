@@ -61,8 +61,11 @@ object Eval {
     case Define(name, value) => register(name, value).map(Definition)
   }
 
- def sLambda: PartialEval = {
+  def sLambda: PartialEval = {
+    // Construct a lambda object. Both the params and the body shouldn't
+    // be evaluated.
     case Cons(Lambda, Cons(params, body)) => Lambda(params, body).valid
+
     case Cons(Lambda(params: SList, body), args: SList) =>
       def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)

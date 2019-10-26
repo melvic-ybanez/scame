@@ -2,7 +2,7 @@ package com.melvic.scame
 
 sealed trait SExpr
 
-// TODO: Vectors, Procedure, Conversion between types
+// TODO: Strings, Vectors, Procedure, Conversion between types
 //  see: https://ds26gte.github.io/tyscheme/index-Z-H-4.html
 object SExpr {
   sealed trait Atom extends SExpr
@@ -34,6 +34,7 @@ object SExpr {
   case object Lambda extends SpecialForm
   case object Cons extends SpecialForm
   case object Quote extends SpecialForm
+  case object Cond extends SpecialForm
 
   // Special Forms
   final case class Define(name: String, value: SExpr) extends SExpr

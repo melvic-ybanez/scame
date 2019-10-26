@@ -5,6 +5,7 @@ import NoWhitespace._
 import com.melvic.scame.SExpr.{Define, Quote, _}
 import Literals._
 
+// TODO: Add support for comments
 object Parse {
   def spaces[_: P] = P(CharsWhileIn(" \r\n", 0))
 
@@ -25,34 +26,22 @@ object Parse {
 
   def character[_: P] = P(("#\\" ~ (specialCharacter | AnyChar)).!).map(SChar)
 
-  /**
-   * Matches any name that starts with an underscore, dollar sign,
-   * or alpha-character.
-   * Note: This is subject to change in the future.
-   */
-  def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~
-    CharsWhile(c => !invalidSymbol.contains(c.toString)).?).!).map(SSymbol)
-
-  def string[_: P] = P("\"" ~ CharsWhile(_ != '\"').?.! ~ "\"").map {
-    // Strings are just lists of characters, at least for now.
-    // Note that this is subject to change as the goal is to get
-    // closer to the standard scheme language design.
-    _.toList.map(c => SChar(s"#\\$c")).asSList
-  }
+  def symbol[_: P] = P(CharsWhile(c => !invalidSymbol.contains(c.toString)).!).map(SSymbol)
 
   def define[_: P] = P(DefineLiteral).map(_ => Define)
   def quote[_: P] = P(QuoteLiteral).map(_ => Quote)
   def sLambda[_: P] = P(LambdaLiteral).map(_ => Lambda)
+  def cond[_: P] = P(CondLiteral).map(_ => Cond)
 
-  def specialForm[_: P] = P(define | quote | sLambda)
+  def specialForm[_: P] = P(define | quote | sLambda | cond)
 
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => Cons(Quote, Cons(expr, SNil)))
 
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
-  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=spaces) ~ spaces ~ ")").map(_.toList.asSList)
+  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=spaces) ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P(spaces ~ (atom | sList | symbol | string | quoteSugar) ~ spaces)
+  def expression[_: P]: P[SExpr] = P(spaces ~ (atom | sList | quoteSugar | symbol) ~ spaces)
 
   def apply(input: String) = parse(input, expression(_))
 }

@@ -27,6 +27,7 @@ trait SExprInstances {
     case number: SNumber => showNumber(number)
     case SSymbol(name) => name
     case specialForm: SpecialForm => showSpecialForm(specialForm)
+    case Lambda(_, _) => "#<Closure>"
     case _: Definition => Literals.NilLiteral
     case expr: SList =>
       val showExpr = showSExpr

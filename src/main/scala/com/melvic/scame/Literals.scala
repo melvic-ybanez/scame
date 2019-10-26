@@ -7,6 +7,7 @@ object Literals {
   val DefineLiteral = "define"
   val QuoteLiteral = "quote"
   val LambdaLiteral = "lambda"
+  val CondLiteral = "cond"
 
   val NilLiteral = "()"
 
@@ -15,6 +16,5 @@ object Literals {
   val SpaceLiteral = "space"
   val BackspaceLiteral = "backspace"
 
-  val invalidSymbol = "\"\'() ".toList.map(_.toString) ++ List(DefineLiteral,
-    QuoteLiteral, LambdaLiteral, TrueLiteral, FalseLiteral)
+  val invalidSymbol = "\"\'() "
 }
