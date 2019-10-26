@@ -33,12 +33,11 @@ object Parse {
   def symbol[_: P] = P((("_" | "$" | CharIn("a-zA-Z")) ~
     CharsWhile(c => !invalidSymbol.contains(c.toString)).?).!).map(SSymbol)
 
-  def string[_: P] = P("\"" ~ CharsWhile(_ != '\"').?.! ~ "\"").map { expr =>
+  def string[_: P] = P("\"" ~ CharsWhile(_ != '\"').?.! ~ "\"").map {
     // Strings are just lists of characters, at least for now.
     // Note that this is subject to change as the goal is to get
     // closer to the standard scheme language design.
-    val str = expr.toList.map(c => SChar(s"#\\$c")).asSList
-    Cons(Quote, Cons(str, SNil))
+    _.toList.map(c => SChar(s"#\\$c")).asSList
   }
 
   def define[_: P] = P(DefineLiteral).map(_ => Define)
