@@ -29,10 +29,11 @@ object SExpr {
   final case class Pair(first: SExpr, second: SExpr) extends SExpr
 
   // Special Forms as heads of the lists
-  case object Define extends Atom
-  case object Lambda extends Atom
-  case object Cons extends Atom
-  case object Quote extends Atom
+  sealed trait SpecialForm extends Atom
+  case object Define extends SpecialForm
+  case object Lambda extends SpecialForm
+  case object Cons extends SpecialForm
+  case object Quote extends SpecialForm
 
   // Special Forms
   final case class Define(name: String, value: SExpr) extends SExpr

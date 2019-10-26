@@ -16,11 +16,17 @@ trait SExprInstances {
     case SReal(whole, fractional) => s"$whole.$fractional"
   }
 
-  implicit def showSExpr(implicit showBoolean: Show[SBoolean], showNumber: Show[SNumber]): Show[SExpr] = {
+  implicit val showSpecialForm: Show[SpecialForm] = { expr =>
+    s"#<Syntax ${expr.toString.toLowerCase}>"
+  }
+
+  implicit def showSExpr(implicit showBoolean: Show[SBoolean],
+      showNumber: Show[SNumber], showSpecialForm: Show[SpecialForm]): Show[SExpr] = {
     case boolean: SBoolean => showBoolean(boolean)
     case SChar(value) => value
     case number: SNumber => showNumber(number)
     case SSymbol(name) => name
+    case specialForm: SpecialForm => showSpecialForm(specialForm)
     case _: Definition => Literals.NilLiteral
     case expr: SList =>
       val showExpr = showSExpr
