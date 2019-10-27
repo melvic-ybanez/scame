@@ -21,7 +21,7 @@ object Eval {
     val eval = atom orElse symbol orElse
       emptyList orElse pair orElse
       define orElse sLambda orElse
-      quote
+      cond orElse quote
     eval(expr)
   }
 
@@ -47,7 +47,7 @@ object Eval {
       case _ => Pair(h, t)
     }
     case Cons(Cons, tail) =>
-      ExprMismatch("pair" +: Vector(), tail.toString).invalid
+      ExprMismatch("pair" +: Vector(), tail).invalid
   }
 
   def define: PartialEval = {
@@ -56,8 +56,7 @@ object Eval {
       Eval(Define(name, v))
     }
     case Cons(Define, body) => ExprMismatch(
-      Constants.Symbol +: Constants.Pair +: Vector(),
-      body.toString).invalid
+      Constants.Symbol +: Constants.Pair +: Vector(), body).invalid
     case Define(name, value) => register(name, value).map(Definition)
   }
 
@@ -74,7 +73,7 @@ object Eval {
           newEnv <- register(param, evaluatedArg)
           result <- recurse(newEnv)(t, t1)
         } yield result
-        case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h.toString).invalid
+        case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h).invalid
       }
 
       for {
@@ -100,6 +99,16 @@ object Eval {
 
   def quote: PartialEval = {
     case Cons(Quote, Cons(arg, _)) => arg.valid
+  }
+
+  def cond: PartialEval = {
+    case Cons(Cond, Cons(Cons(pred, Cons(body, _)), _)) if !SExpr.falsy(pred) => Eval(body)
+    case Cons(Cond, Cons(Cons(pred, _), rest)) if SExpr.falsy(pred) => Eval(Cons(Cond, rest))
+    case Cons(Cond, Cons(Cons(sexpr, body), rest)) => for {
+      head <- Eval(sexpr)
+      result <- Eval(Cons(Cond, Cons(Cons(head, body), rest)))
+    } yield result
+    case Cons(Cond, expr) => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).invalid
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =

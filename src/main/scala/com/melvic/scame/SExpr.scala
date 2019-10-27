@@ -47,4 +47,9 @@ object SExpr {
   final case class Cdr(pair: Pair) extends SExpr
 
   final case class Definition(env: Env) extends SExpr
+
+  def falsy: SExpr => Boolean = {
+    case SFalse => true
+    case _ => false
+  }
 }
