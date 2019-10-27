@@ -14,13 +14,20 @@ object Parse {
   def boolean[_: P] = P(sTrue | sFalse)
 
   def integer[_: P] = P(CharsWhileIn("0-9").!).map(i => SInt(i.toInt))
-  def rational[_: P] = P(integer ~ "/" ~ integer).map { case (SInt(n), SInt(d)) =>
+  def signedInt[_: P] = P("-".!.? ~ integer).map {
+    case (None, sInt) => sInt
+    case (Some(_), SInt(i)) => SInt(-i)
+  }
+
+  def rational[_: P] = P(signedInt ~ "/" ~ integer).map { case (SInt(n), SInt(d)) =>
     SRational(n, d)
   }
-  def real[_: P] = P(integer ~ "." ~ integer).map { case (SInt(n), SInt(d)) =>
-    SReal(n + (d.toDouble / Utils.tens(d)))
+  def real[_: P] = P(signedInt ~ "." ~ integer).map { case (SInt(n), SInt(d)) =>
+    val nAbs = Math.abs(n)
+    val sign = n / nAbs
+    SReal(sign * (nAbs + (d.toDouble / Utils.tens(d))))
   }
-  def number[_: P] = P(rational | real | integer)
+  def number[_: P] = P(rational | real | signedInt)
 
   def specialCharacter[_: P] = P(NewLineLiteral | TabLiteral | SpaceLiteral | BackspaceLiteral)
 

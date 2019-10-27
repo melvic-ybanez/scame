@@ -16,7 +16,6 @@ object SExpr {
   final case class SSymbol(name: String) extends SExpr
 
   // TODO: Add support for complex numbers, and other base format (binary, hex, etc.)
-  // TODO: Add support for negative numbers (though this one probably goes to the parser)
   sealed trait SNumber extends Atom
   final case class SInt(value: Int) extends SNumber
   final case class SRational(numerator: Int, denominator: Int) extends SNumber
