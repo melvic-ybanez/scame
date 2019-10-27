@@ -18,7 +18,7 @@ object Parse {
     SRational(n, d)
   }
   def real[_: P] = P(integer ~ "." ~ integer).map { case (SInt(n), SInt(d)) =>
-    SReal(n, d)
+    SReal(n + (d.toDouble / Utils.tens(d)))
   }
   def number[_: P] = P(rational | real | integer)
 
@@ -36,13 +36,22 @@ object Parse {
 
   def specialForm[_: P] = P(define | quote | sLambda | cond | let)
 
+  def add[_: P] = P("+").map(_ => Add)
+  def subtract[_: P] = P("-").map(_ => Subtract)
+  def multiply[_: P] = P("*").map(_ => Multiply)
+  def divide[_: P] = P("/").map(_ => Divide)
+
+  def arithmetic[_: P] = P(add | subtract | multiply | divide)
+
+  def function[_: P] = P(arithmetic)
+
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => Cons(Quote, Cons(expr, SNil)))
 
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
-  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ ")").map(_.toList.asSList)
+  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ spaces ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P(atom | sList | quoteSugar | symbol)
+  def expression[_: P]: P[SExpr] = P(atom | sList | quoteSugar | function | symbol)
 
   def apply(input: String) = parse(input, expression(_))
 }

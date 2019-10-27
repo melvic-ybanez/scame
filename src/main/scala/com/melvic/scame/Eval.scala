@@ -20,14 +20,13 @@ object Eval {
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
     val eval = atom orElse symbol orElse emptyList orElse
       pair orElse define orElse sLambda orElse
-      cond orElse let orElse quote
+      cond orElse let orElse arithmetic orElse
+      quote
     eval(expr)
   }
 
   def atom: PartialEval = { case atom: Atom => atom.valid }
 
-  // TODO: Special forms like define, symbol, etc should
-  //  have a default value that displays "#<Syntax name-of-the-form>"
   def symbol: PartialEval = { case SSymbol(name) =>
     provideNameToEnv(name, Env.globalSearch)
   }
@@ -131,8 +130,45 @@ object Eval {
     case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).invalid
   }
 
+  def arithmetic: PartialEval = {
+    case Cons(Add, args: SList) => fold(args, SInt(0)) {
+      case (SInt(a), SInt(b)) => SInt(a + b).valid
+      case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).valid
+      case (SInt(a), SReal(b)) => SReal(a + b).valid
+      case (r: SRational, i: SInt) => compute(Add, i, r)    // reverse
+      case (SRational(n1, d1), SRational(n2, d2)) =>
+        val lcd = Utils.lcm(d1, d2)
+        SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).valid
+      case (SRational(n, d), r: SReal) =>
+        // convert the rational to real
+        val dec = n.toDouble / d
+        val r1 = SReal(dec)
+
+        // evaluate the two real numbers
+        compute(Add, r, r1)
+      case (r: SReal, i: SInt) => compute(Add, i, r)    // reverse
+      case (r: SReal, f: SRational) => compute(Add, f, r)   // reverse
+      case (SReal(a), SReal(b)) => SReal(a + b).valid
+    }
+  }
+
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
     env.provideSome[EvalConfig](e => (name, e.env))
 
   def register(name: String, expr: SExpr) = provideNameToEnv(name, Env.register(expr))
+
+  /**
+   * Short-circuiting fold designed specifically for evaluated s-expressions.
+   * TODO: This is not tail-recursive
+   */
+  def fold(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
+    case SNil => acc.valid
+    case Cons(head, tail) => for {
+      a <- f(acc, head)
+      r <- fold(tail, a)(f)
+    } yield r
+  }
+
+  def compute(op: Arithmetic, a: SNumber, b: SNumber) =
+    Eval(Cons(op, Cons(a, Cons(b, SNil))))
 }

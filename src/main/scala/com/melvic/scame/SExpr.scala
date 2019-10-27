@@ -16,11 +16,11 @@ object SExpr {
   final case class SSymbol(name: String) extends SExpr
 
   // TODO: Add support for complex numbers, and other base format (binary, hex, etc.)
-  // TODO: Add support for negative numbers
+  // TODO: Add support for negative numbers (though this one probably goes to the parser)
   sealed trait SNumber extends Atom
   final case class SInt(value: Int) extends SNumber
   final case class SRational(numerator: Int, denominator: Int) extends SNumber
-  final case class SReal(whole: Int, fractional: Int) extends SNumber
+  final case class SReal(value: Double) extends SNumber
 
   // Lists
   sealed trait SList extends SExpr
@@ -45,6 +45,13 @@ object SExpr {
   final case class Cdr(pair: Pair) extends SExpr
 
   final case class Definition(env: Env) extends SExpr
+
+  // Arithmetic expressions
+  sealed trait Arithmetic extends SExpr
+  case object Add extends Arithmetic
+  case object Subtract extends Arithmetic
+  case object Multiply extends Arithmetic
+  case object Divide extends Arithmetic
 
   def falsy: SExpr => Boolean = {
     case SFalse => true

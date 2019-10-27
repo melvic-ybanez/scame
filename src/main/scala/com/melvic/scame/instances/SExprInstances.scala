@@ -13,7 +13,7 @@ trait SExprInstances {
   implicit val showNumber: Show[SNumber] = {
     case SInt(value) => value.toString
     case SRational(num, denom) => s"$num/$denom"
-    case SReal(whole, fractional) => s"$whole.$fractional"
+    case SReal(value) => value.toString
   }
 
   implicit val showSpecialForm: Show[SpecialForm] = { expr =>
