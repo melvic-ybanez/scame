@@ -32,8 +32,9 @@ object Parse {
   def quote[_: P] = P(QuoteLiteral).map(_ => Quote)
   def sLambda[_: P] = P(LambdaLiteral).map(_ => Lambda)
   def cond[_: P] = P(CondLiteral).map(_ => Cond)
+  def let[_: P] = P(LetLiteral).map(_ => Let)
 
-  def specialForm[_: P] = P(define | quote | sLambda | cond)
+  def specialForm[_: P] = P(define | quote | sLambda | cond | let)
 
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => Cons(Quote, Cons(expr, SNil)))
 

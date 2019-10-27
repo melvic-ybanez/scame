@@ -35,13 +35,11 @@ object SExpr {
   case object Cons extends SpecialForm
   case object Quote extends SpecialForm
   case object Cond extends SpecialForm
+  case object Let extends SpecialForm
 
   // Special Forms
   final case class Define(name: String, value: SExpr) extends SExpr
-  final case class Quote(body: SExpr) extends SExpr
   final case class Lambda(params: SExpr, body: SExpr) extends SExpr
-  final case class Cond(pairs: Vector[Cons]) extends SExpr
-  final case class Let(pairs: Vector[Cons], body: SExpr) extends SExpr
 
   final case class Car(pair: Pair) extends SExpr
   final case class Cdr(pair: Pair) extends SExpr

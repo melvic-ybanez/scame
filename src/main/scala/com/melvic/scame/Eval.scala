@@ -18,10 +18,9 @@ object Eval {
     apply.provideSome[EvalConfig](_.copy(expr = expression))
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
-    val eval = atom orElse symbol orElse
-      emptyList orElse pair orElse
-      define orElse sLambda orElse
-      cond orElse quote
+    val eval = atom orElse symbol orElse emptyList orElse
+      pair orElse define orElse sLambda orElse
+      cond orElse let orElse quote
     eval(expr)
   }
 
@@ -103,13 +102,33 @@ object Eval {
 
   def cond: PartialEval = {
     case Cons(Cond, Cons(Cons(pred, Cons(body, _)), _)) if !SExpr.falsy(pred) => Eval(body)
-    case Cons(Cond, Cons(Cons(pred, _), SNil)) => SNil.valid
+    case Cons(Cond, Cons(Cons(pred, _), SNil)) if SExpr.falsy(pred) => SNil.valid
     case Cons(Cond, Cons(Cons(pred, _), rest)) if SExpr.falsy(pred) => Eval(Cons(Cond, rest))
     case Cons(Cond, Cons(Cons(sexpr, body), rest)) => for {
       head <- Eval(sexpr)
       result <- Eval(Cons(Cond, Cons(Cons(head, body), rest)))
     } yield result
     case Cons(Cond, expr) => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).invalid
+  }
+
+  /**
+   * A let expression ideally takes two arguments: the list of symbol-value pairs
+   * and the main body of computation.
+   */
+  def let: PartialEval = {
+    // If the head of the first argument is a non-empty list, see if you can make
+    // a definition out of it by delegating to the define special form.
+    case Cons(Let, Cons(Cons(define: Cons, defineRest), body)) => for {
+      definedHead <- Eval(Cons(Define, define))
+      result <- definedHead match {
+        case Definition(env) => Eval(Cons(Let, Cons(defineRest, body)), env)
+      }
+    } yield result
+
+    // If there aren't any definitions to evaluate, evaluate the body.
+    case Cons(Let, Cons(SNil, Cons(body, SNil))) => Eval(body)
+
+    case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).invalid
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =

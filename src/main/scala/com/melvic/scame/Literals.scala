@@ -8,6 +8,7 @@ object Literals {
   val QuoteLiteral = "quote"
   val LambdaLiteral = "lambda"
   val CondLiteral = "cond"
+  val LetLiteral = "let"
 
   val NilLiteral = "()"
 
