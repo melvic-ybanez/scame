@@ -39,9 +39,9 @@ object Parse {
 
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
-  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=spaces) ~ ")").map(_.toList.asSList)
+  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ ")").map(_.toList.asSList)
 
-  def expression[_: P]: P[SExpr] = P(spaces ~ (atom | sList | quoteSugar | symbol) ~ spaces)
+  def expression[_: P]: P[SExpr] = P(atom | sList | quoteSugar | symbol)
 
   def apply(input: String) = parse(input, expression(_))
 }

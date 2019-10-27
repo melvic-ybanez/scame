@@ -8,7 +8,11 @@ trait ErrorCodeInstances {
     "Error: " + (symbol match {
       case SymbolNotFound(name) => s"Unbound symbol: $name"
       case ExprMismatch(expected, got) =>
-        s"Expression mismatch. Expected: $expected. Got: ${Show[SExpr](got)}"
+        // Note: If there are three items, this will result to a tricolon.
+        // If there are more (which is less likely), this might become weird.
+        val expectedString = expected.mkString(" or ")
+        
+        s"Expression mismatch. Expected: $expectedString. Got: ${Show[SExpr](got)}"
     })
 }
 

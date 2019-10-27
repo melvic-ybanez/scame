@@ -103,6 +103,7 @@ object Eval {
 
   def cond: PartialEval = {
     case Cons(Cond, Cons(Cons(pred, Cons(body, _)), _)) if !SExpr.falsy(pred) => Eval(body)
+    case Cons(Cond, Cons(Cons(pred, _), SNil)) => SNil.valid
     case Cons(Cond, Cons(Cons(pred, _), rest)) if SExpr.falsy(pred) => Eval(Cons(Cond, rest))
     case Cons(Cond, Cons(Cons(sexpr, body), rest)) => for {
       head <- Eval(sexpr)
