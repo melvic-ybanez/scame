@@ -158,14 +158,19 @@ object Eval {
     def subtract: PartialEval = {
       case Cons(Subtract, SNil) => TooFewArguments(1, 0).invalid
       case Cons(Subtract, Cons(n: SNumber, SNil)) => negate(n).valid
+
+      // If there are more than one numbers, negate all of them but
+      // but the first one, and compute their sum.
       case Cons(Subtract, Cons(h: SNumber, t)) => for {
         negated <- foldS(t, SNil) {
           case (acc: SList, n: SNumber) => Cons(negate(n), acc).valid
-          case (_, n) => ExprMismatch(Vector("Number"), n).invalid
+          case (_, n) => nonNumber(n)
         }
+        // Only accepts lists. We have to manually pattern match
+        // because foldS is weakly typed.
         negatedList <- negated match {
           case l: SList => l.valid
-          case e => ExprMismatch(Vector("Number"), e).invalid
+          case e => nonNumber(e)
         }
         diff <- Eval(Cons(Add, Cons(h, negatedList)))
       } yield diff
