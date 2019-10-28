@@ -1,6 +1,6 @@
 package com.melvic.scame.instances
 
-import com.melvic.scame.ErrorCode.{ExprMismatch, SymbolNotFound}
+import com.melvic.scame.ErrorCode.{ExprMismatch, SymbolNotFound, TooFewArguments}
 import com.melvic.scame.{ErrorCode, SExpr, Show}
 
 trait ErrorCodeInstances {
@@ -13,6 +13,8 @@ trait ErrorCodeInstances {
         val expectedString = expected.mkString(" or ")
         
         s"Expression mismatch. Expected: $expectedString. Got: ${Show[SExpr](got)}"
+      case TooFewArguments(expectedMin, got) =>
+        s"Too Few Arguments. Expected at least $expectedMin. Got $got"
     })
 }
 

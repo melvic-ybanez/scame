@@ -1,7 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Env.EnvConfig
-import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount}
+import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, TooFewArguments}
 import com.melvic.scame.SExpr._
 import zio.ZIO
 
@@ -131,25 +131,56 @@ object Eval {
   }
 
   def arithmetic: PartialEval = {
-    case Cons(Add, args: SList) => fold(args, SInt(0)) {
-      case (SInt(a), SInt(b)) => SInt(a + b).valid
-      case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).valid
-      case (SInt(a), SReal(b)) => SReal(a + b).valid
-      case (r: SRational, i: SInt) => compute(Add, i, r)    // reverse
-      case (SRational(n1, d1), SRational(n2, d2)) =>
-        val lcd = Utils.lcm(d1, d2)
-        SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).valid
-      case (SRational(n, d), r: SReal) =>
-        // convert the rational to real
-        val dec = n.toDouble / d
-        val r1 = SReal(dec)
+    def add: PartialEval = {
+      case Cons(Add, args: SList) => foldS(args, SInt(0)) {
+        case (SInt(a), SInt(b)) => SInt(a + b).valid
+        case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).valid
+        case (SInt(a), SReal(b)) => SReal(a + b).valid
+        case (r: SRational, i: SInt) => binOp(Add, i, r) // reverse
+        case (SRational(n1, d1), SRational(n2, d2)) =>
+          val lcd = Utils.lcm(d1, d2)
+          SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).valid
+        case (SRational(n, d), r: SReal) =>
+          // convert the rational to real
+          val dec = n.toDouble / d
+          val r1 = SReal(dec)
 
-        // evaluate the two real numbers
-        compute(Add, r, r1)
-      case (r: SReal, i: SInt) => compute(Add, i, r)    // reverse
-      case (r: SReal, f: SRational) => compute(Add, f, r)   // reverse
-      case (SReal(a), SReal(b)) => SReal(a + b).valid
+          // evaluate the two real numbers
+          binOp(Add, r, r1)
+        case (r: SReal, i: SInt) => binOp(Add, i, r) // reverse
+        case (r: SReal, f: SRational) => binOp(Add, f, r) // reverse
+        case (SReal(a), SReal(b)) => SReal(a + b).valid
+
+        case (_, expr) => nonNumber(expr)
+      }
     }
+
+    def subtract: PartialEval = {
+      case Cons(Subtract, SNil) => TooFewArguments(1, 0).invalid
+      case Cons(Subtract, Cons(n: SNumber, SNil)) => negate(n).valid
+      case Cons(Subtract, Cons(h: SNumber, t)) => for {
+        negated <- foldS(t, SNil) {
+          case (acc: SList, n: SNumber) => Cons(negate(n), acc).valid
+          case (_, n) => ExprMismatch(Vector("Number"), n).invalid
+        }
+        negatedList <- negated match {
+          case l: SList => l.valid
+          case e => ExprMismatch(Vector("Number"), e).invalid
+        }
+        diff <- Eval(Cons(Add, Cons(h, negatedList)))
+      } yield diff
+      case Cons(Subtract, Cons(expr, _)) => nonNumber(expr)
+    }
+
+    def negate: SNumber => SNumber = {
+      case SInt(a) => SInt(-a)
+      case SRational(n, d) => SRational(-n, d)
+      case SReal(n) => SReal(-n)
+    }
+
+    def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).invalid
+
+    add orElse subtract
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
@@ -161,14 +192,14 @@ object Eval {
    * Short-circuiting fold designed specifically for evaluated s-expressions.
    * TODO: This is not tail-recursive
    */
-  def fold(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
+  def foldS(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
     case SNil => acc.valid
     case Cons(head, tail) => for {
       a <- f(acc, head)
-      r <- fold(tail, a)(f)
+      r <- foldS(tail, a)(f)
     } yield r
   }
 
-  def compute(op: Arithmetic, a: SNumber, b: SNumber) =
+  def binOp(op: SExpr, a: SNumber, b: SNumber) =
     Eval(Cons(op, Cons(a, Cons(b, SNil))))
 }
