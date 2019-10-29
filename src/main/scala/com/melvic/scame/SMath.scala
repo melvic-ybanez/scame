@@ -4,14 +4,14 @@ import com.melvic.scame.SExpr.{SRational, SReal}
 
 import scala.annotation.tailrec
 
-object Utils {
+object SMath {
   def lcm(a: Int, b: Int): Int =
     if (a == 0 && b == 0) 0
     else {
-      val absA = Math.abs(a)
-      val absB = Math.abs(b)
-      val low = Math.min(absA, absB)
-      val high = Math.max(absA, absB)
+      val absA = a.abs
+      val absB = b.abs
+      val low = absA.min(absB)
+      val high = absA.max(absB)
 
       @tailrec
       def iter(lcm: Int): Int =
@@ -28,10 +28,22 @@ object Utils {
       else recurse(t + 1, n1 / 10)
     }
 
-    Math.pow(10, recurse(0, n)).toInt
+    10 ^ recurse(0, n)
   }
 
   def rationalToReal: SRational => SReal = { case SRational(n, d) =>
     SReal(n.toDouble / d)
+  }
+
+  def realToRational: SReal => SRational = { case SReal(n) =>
+    val dec = n.toInt
+    val frac = n - dec
+    if (frac == 0) SRational(dec, 1)
+    else {
+      val fracString = frac.toString.split("\\.")(1)
+      val denom = fracString.toInt
+      val tens = 10 ^ fracString.length
+      SRational(dec * tens + denom, denom)
+    }
   }
 }

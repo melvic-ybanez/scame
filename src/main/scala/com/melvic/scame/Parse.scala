@@ -25,7 +25,7 @@ object Parse {
   def real[_: P] = P(signedInt ~ "." ~ integer).map { case (SInt(d), SInt(f)) =>
     val dec = Math.abs(d)
     val sign = Integer.signum(d)
-    val frac = f.toDouble / Utils.tens(f)
+    val frac = f.toDouble / SMath.tens(f)
     SReal((if (sign == 0) 1 else sign) * (dec + frac))
   }
   def number[_: P] = P(rational | real | signedInt)

@@ -2,6 +2,7 @@ package com.melvic.scame
 
 import com.melvic.scame.Env.EnvConfig
 import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, TooFewArguments}
+import com.melvic.scame.Eval.foldS
 import com.melvic.scame.SExpr._
 import zio.ZIO
 
@@ -132,17 +133,17 @@ object Eval {
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
-      case Cons(Add, args: SList) => foldS(args, SInt(0)) {
+      case Cons(Add, args) => foldS(args, SInt(0)) {
         case (SInt(a), SInt(b)) => SInt(a + b).!
         case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).!
         case (SInt(a), SReal(b)) => SReal(a + b).!
         case (r: SRational, i: SInt) => binOp(Add, i, r) // reverse
         case (SRational(n1, d1), SRational(n2, d2)) =>
-          val lcd = Utils.lcm(d1, d2)
+          val lcd = SMath.lcm(d1, d2)
           SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).!
         case (rat: SRational, real: SReal) =>
           // evaluate the two as real numbers
-          binOp(Add, real, Utils.rationalToReal(rat))
+          binOp(Add, real, SMath.rationalToReal(rat))
         case (r: SReal, i: SInt) => binOp(Add, i, r) // reverse
         case (r: SReal, f: SRational) => binOp(Add, f, r) // reverse
         case (SReal(a), SReal(b)) => SReal(a + b).!
@@ -151,27 +152,11 @@ object Eval {
       }
     }
 
-    def subtract: PartialEval = {
-      case Cons(Subtract, SNil) => TooFewArguments(1, 0).!
-      case Cons(Subtract, Cons(n: SNumber, SNil)) => negate(n).!
-
-      // If there are more than one numbers, negate all of them but
-      // but the first one, and compute their sum.
-      case Cons(Subtract, Cons(h: SNumber, t)) => for {
-        negated <- foldS(t, SNil) {
-          case (acc: SList, n: SNumber) => Cons(negate(n), acc).!
-          case (_, n) => nonNumber(n)
-        }
-        // Only accepts lists. We have to manually pattern match
-        // because foldS is weakly typed.
-        negatedList <- negated match {
-          case l: SList => l.!
-          case e => nonNumber(e)
-        }
-        diff <- Eval(Cons(Add, Cons(h, negatedList)))
-      } yield diff
-      case Cons(Subtract, Cons(expr, _)) => nonNumber(expr)
-    }
+    /**
+     * Computes the difference. If there are more than one numbers,
+     * negate all of them but the first one, and compute their sum.
+     */
+    def subtract: PartialEval = reverseOp(Subtract, Add)(negate)
 
     def multiply: PartialEval = {
       case Cons(Multiply, args: SList) => foldS(args, SInt(1)) {
@@ -188,13 +173,48 @@ object Eval {
           val gcd = BigInt(num).gcd(BigInt(denom)).intValue
           SRational(num / gcd, denom / gcd).!
         case (rat: SRational, real: SReal) =>
-          binOp(Multiply, real, Utils.rationalToReal(rat))
+          binOp(Multiply, real, SMath.rationalToReal(rat))
         case (r: SReal, i: SInt) => binOp(Multiply, i, r)
         case (r: SReal, f: SRational) => binOp(Multiply, f, r)
         case (SReal(a), SReal(b)) => SReal(a * b).!
 
         case (_, expr) => nonNumber(expr)
       }
+    }
+
+    /**
+     * Computes the difference. If there are more than one numbers,
+     * get the reciprocal of each item but the first one, and compute their product.
+     * TODO: Division-by-zero stuff.
+     * TODO: Simplify (e.g 1/1 should become 1)
+     */
+    def divide: PartialEval = reverseOp(Divide, Multiply) {
+      case SInt(a) => SRational(1, a)
+      case SRational(n, d) => SRational(d, n)
+      case r: SReal =>
+        val SRational(w, f) = SMath.realToRational(r)
+        SRational(f, w)
+    }
+
+    def reverseOp(op: Arithmetic, op1: Arithmetic)(f: SNumber => SNumber): PartialEval = {
+      case Cons(`op`, SNil) => TooFewArguments(1, 0).!
+      case Cons(`op`, Cons(n: SNumber, SNil)) => f(n).!
+      case Cons(`op`, Cons(h: SNumber, t)) => for {
+        reverse <- foldS(t, SNil) {
+          case (acc: SList, n: SNumber) => Cons(f(n), acc).!
+          case (_, n) => nonNumber(n)
+        }
+
+        // Only accepts lists. We have to manually pattern match
+        // because foldS is weakly typed.
+        reversedNumbers <- reverse match {
+          case l: SList => l.!
+          case e => nonNumber(e)
+        }
+
+        diff <- Eval(Cons(op1, Cons(h, reversedNumbers)))
+      } yield diff
+      case Cons(`op`, Cons(expr, _)) => nonNumber(expr)
     }
 
     def negate: SNumber => SNumber = {
@@ -205,7 +225,7 @@ object Eval {
 
     def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
 
-    add orElse subtract orElse multiply
+    add orElse subtract orElse multiply orElse divide
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
