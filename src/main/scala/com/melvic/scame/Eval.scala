@@ -25,16 +25,16 @@ object Eval {
     eval(expr)
   }
 
-  def atom: PartialEval = { case atom: Atom => atom.valid }
+  def atom: PartialEval = { case atom: Atom => atom.! }
 
   def symbol: PartialEval = { case SSymbol(name) =>
     provideNameToEnv(name, Env.globalSearch)
   }
 
-  def emptyList: PartialEval = { case SNil => SNil.valid }
+  def emptyList: PartialEval = { case SNil => SNil.! }
 
   def pair: PartialEval = {
-    case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).invalid
+    case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).!
     case Cons(Cons, Cons(head, tail)) => for {
       h <- Eval(head)
       t <- Eval(tail)
@@ -45,7 +45,7 @@ object Eval {
       case _ => Pair(h, t)
     }
     case Cons(Cons, tail) =>
-      ExprMismatch("pair" +: Vector(), tail).invalid
+      ExprMismatch("pair" +: Vector(), tail).!
   }
 
   def define: PartialEval = {
@@ -54,14 +54,14 @@ object Eval {
       Eval(Define(name, v))
     }
     case Cons(Define, body) => ExprMismatch(
-      Constants.Symbol +: Constants.Pair +: Vector(), body).invalid
+      Constants.Symbol +: Constants.Pair +: Vector(), body).!
     case Define(name, value) => register(name, value).map(Definition)
   }
 
   def sLambda: PartialEval = {
     // Construct a lambda object. Both the params and the body shouldn't
     // be evaluated.
-    case Cons(Lambda, Cons(params, body)) => Lambda(params, body).valid
+    case Cons(Lambda, Cons(params, body)) => Lambda(params, body).!
 
     case Cons(Lambda(params: SList, body), args: SList) =>
       def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
@@ -71,7 +71,7 @@ object Eval {
           newEnv <- register(param, evaluatedArg)
           result <- recurse(newEnv)(t, t1)
         } yield result
-        case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h).invalid
+        case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h).!
       }
 
       for {
@@ -84,7 +84,7 @@ object Eval {
     // whole argument list.
     case Cons(Lambda(SSymbol(param), body), args) =>
       for {
-        argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.valid) { (acc, arg) =>
+        argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.!) { (acc, arg) =>
           for {
             tail <- acc
             head <- Eval(arg)
@@ -96,18 +96,18 @@ object Eval {
   }
 
   def quote: PartialEval = {
-    case Cons(Quote, Cons(arg, _)) => arg.valid
+    case Cons(Quote, Cons(arg, _)) => arg.!
   }
 
   def cond: PartialEval = {
     case Cons(Cond, Cons(Cons(pred, Cons(body, _)), _)) if !SExpr.falsy(pred) => Eval(body)
-    case Cons(Cond, Cons(Cons(pred, _), SNil)) if SExpr.falsy(pred) => SNil.valid
+    case Cons(Cond, Cons(Cons(pred, _), SNil)) if SExpr.falsy(pred) => SNil.!
     case Cons(Cond, Cons(Cons(pred, _), rest)) if SExpr.falsy(pred) => Eval(Cons(Cond, rest))
     case Cons(Cond, Cons(Cons(sexpr, body), rest)) => for {
       head <- Eval(sexpr)
       result <- Eval(Cons(Cond, Cons(Cons(head, body), rest)))
     } yield result
-    case Cons(Cond, expr) => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).invalid
+    case Cons(Cond, expr) => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).!
   }
 
   /**
@@ -116,7 +116,7 @@ object Eval {
    */
   def let: PartialEval = {
     // If the head of the first argument is a non-empty list, see if you can make
-    // a definition out of it by delegating to the define special form.
+    // a definition out of it by delegating to the `define` special form.
     case Cons(Let, Cons(Cons(define: Cons, defineRest), body)) => for {
       definedHead <- Eval(Cons(Define, define))
       result <- definedHead match {
@@ -127,54 +127,74 @@ object Eval {
     // If there aren't any definitions to evaluate, evaluate the body.
     case Cons(Let, Cons(SNil, Cons(body, SNil))) => Eval(body)
 
-    case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).invalid
+    case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
       case Cons(Add, args: SList) => foldS(args, SInt(0)) {
-        case (SInt(a), SInt(b)) => SInt(a + b).valid
-        case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).valid
-        case (SInt(a), SReal(b)) => SReal(a + b).valid
+        case (SInt(a), SInt(b)) => SInt(a + b).!
+        case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).!
+        case (SInt(a), SReal(b)) => SReal(a + b).!
         case (r: SRational, i: SInt) => binOp(Add, i, r) // reverse
         case (SRational(n1, d1), SRational(n2, d2)) =>
           val lcd = Utils.lcm(d1, d2)
-          SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).valid
-        case (SRational(n, d), r: SReal) =>
-          // convert the rational to real
-          val dec = n.toDouble / d
-          val r1 = SReal(dec)
-
-          // evaluate the two real numbers
-          binOp(Add, r, r1)
+          SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).!
+        case (rat: SRational, real: SReal) =>
+          // evaluate the two as real numbers
+          binOp(Add, real, Utils.rationalToReal(rat))
         case (r: SReal, i: SInt) => binOp(Add, i, r) // reverse
         case (r: SReal, f: SRational) => binOp(Add, f, r) // reverse
-        case (SReal(a), SReal(b)) => SReal(a + b).valid
+        case (SReal(a), SReal(b)) => SReal(a + b).!
 
         case (_, expr) => nonNumber(expr)
       }
     }
 
     def subtract: PartialEval = {
-      case Cons(Subtract, SNil) => TooFewArguments(1, 0).invalid
-      case Cons(Subtract, Cons(n: SNumber, SNil)) => negate(n).valid
+      case Cons(Subtract, SNil) => TooFewArguments(1, 0).!
+      case Cons(Subtract, Cons(n: SNumber, SNil)) => negate(n).!
 
       // If there are more than one numbers, negate all of them but
       // but the first one, and compute their sum.
       case Cons(Subtract, Cons(h: SNumber, t)) => for {
         negated <- foldS(t, SNil) {
-          case (acc: SList, n: SNumber) => Cons(negate(n), acc).valid
+          case (acc: SList, n: SNumber) => Cons(negate(n), acc).!
           case (_, n) => nonNumber(n)
         }
         // Only accepts lists. We have to manually pattern match
         // because foldS is weakly typed.
         negatedList <- negated match {
-          case l: SList => l.valid
+          case l: SList => l.!
           case e => nonNumber(e)
         }
         diff <- Eval(Cons(Add, Cons(h, negatedList)))
       } yield diff
       case Cons(Subtract, Cons(expr, _)) => nonNumber(expr)
+    }
+
+    def multiply: PartialEval = {
+      case Cons(Multiply, args: SList) => foldS(args, SInt(1)) {
+        case (SInt(a), SInt(b)) => SInt(a * b).!
+        case (SInt(a), SRational(n, d)) => SRational(a * n, d).!
+        case (SInt(a), SReal(b)) => SReal(a * b).!
+        case (r: SRational, i: SInt) => binOp(Multiply, i, r)
+        case (SRational(n, d), SRational(n1, d1)) =>
+          // multiply the numerators and denominators
+          val num = n * n1
+          val denom = d * d1
+
+          // simplify the resulting fraction
+          val gcd = BigInt(num).gcd(BigInt(denom)).intValue
+          SRational(num / gcd, denom / gcd).!
+        case (rat: SRational, real: SReal) =>
+          binOp(Multiply, real, Utils.rationalToReal(rat))
+        case (r: SReal, i: SInt) => binOp(Multiply, i, r)
+        case (r: SReal, f: SRational) => binOp(Multiply, f, r)
+        case (SReal(a), SReal(b)) => SReal(a * b).!
+
+        case (_, expr) => nonNumber(expr)
+      }
     }
 
     def negate: SNumber => SNumber = {
@@ -183,9 +203,9 @@ object Eval {
       case SReal(n) => SReal(-n)
     }
 
-    def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).invalid
+    def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
 
-    add orElse subtract
+    add orElse subtract orElse multiply
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
@@ -198,7 +218,7 @@ object Eval {
    * TODO: This is not tail-recursive
    */
   def foldS(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
-    case SNil => acc.valid
+    case SNil => acc.!
     case Cons(head, tail) => for {
       a <- f(acc, head)
       r <- foldS(tail, a)(f)

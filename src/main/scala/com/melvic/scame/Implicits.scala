@@ -7,11 +7,11 @@ import scala.annotation.tailrec
 
 trait Implicits {
   implicit class ExprAsResult[E <: SExpr](expr: E) {
-    def valid = ZIO.succeed(expr)
+    def ! = ZIO.succeed(expr)
   }
 
   implicit class ErrorCodeAsResult[E <: ErrorCode](error: E) {
-    def invalid = ZIO.fail(error)
+    def ! = ZIO.fail(error)
   }
 
   implicit class SListToScalaList(list: SList) {

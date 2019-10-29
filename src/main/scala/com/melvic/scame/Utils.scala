@@ -1,5 +1,7 @@
 package com.melvic.scame
 
+import com.melvic.scame.SExpr.{SRational, SReal}
+
 import scala.annotation.tailrec
 
 object Utils {
@@ -27,5 +29,9 @@ object Utils {
     }
 
     Math.pow(10, recurse(0, n)).toInt
+  }
+
+  def rationalToReal: SRational => SReal = { case SRational(n, d) =>
+    SReal(n.toDouble / d)
   }
 }
