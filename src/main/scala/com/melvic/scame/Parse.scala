@@ -49,6 +49,12 @@ object Parse {
   def multiply[_: P] = P("*").map(_ => Multiply)
   def divide[_: P] = P("/").map(_ => Divide)
 
+  def equal[_: P] = P("=").map(_ => Equal)
+  def greaterThan[_: P] = P(">").map(_ => GT)
+  def greaterOrEqual[_: P] = P(">=").map(_ => GTE)
+  def lesserThan[_: P] = P("<").map(_ => LT)
+  def lesserOrEqual[_: P] = P("<=").map(_ => LTE)
+
   def arithmetic[_: P] = P(add | subtract | multiply | divide)
 
   def function[_: P] = P(arithmetic)

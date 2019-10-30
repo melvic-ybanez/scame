@@ -46,12 +46,20 @@ object SExpr {
 
   final case class Definition(env: Env) extends SExpr
 
-  // Arithmetic expressions
+  // Arithmetic operators
   sealed trait Arithmetic extends SExpr
   case object Add extends Arithmetic
   case object Subtract extends Arithmetic
   case object Multiply extends Arithmetic
   case object Divide extends Arithmetic
+
+  // Relational operators
+  sealed trait Relational extends SExpr
+  case object Equal extends Relational
+  case object GT extends Relational
+  case object GTE extends Relational
+  case object LT extends Relational
+  case object LTE extends Relational
 
   def falsy: SExpr => Boolean = {
     case SFalse => true

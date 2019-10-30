@@ -186,7 +186,6 @@ object Eval {
      * Computes the difference. If there are more than one numbers,
      * get the reciprocal of each item but the first one, and compute their product.
      * TODO: Division-by-zero stuff.
-     * TODO: Simplify (e.g 1/1 should become 1)
      */
     def divide: PartialEval = reverseOp(Divide, Multiply) {
       case SInt(a) => SRational(1, a)
@@ -225,6 +224,8 @@ object Eval {
 
     def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
 
+    // TODO: Simplify resulting rationals to avoid awkward values
+    //  such as 1/1.
     add orElse subtract orElse multiply orElse divide
   }
 
