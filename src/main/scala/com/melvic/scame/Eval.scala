@@ -137,18 +137,14 @@ object Eval {
         case (SInt(a), SInt(b)) => SInt(a + b).!
         case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).!
         case (SInt(a), SReal(b)) => SReal(a + b).!
-        case (r: SRational, i: SInt) => binOp(Add, i, r) // reverse
         case (SRational(n1, d1), SRational(n2, d2)) =>
           val lcd = SMath.lcm(d1, d2)
           SRational(lcd / d1 * n1 + lcd / d2 * n2, lcd).!
         case (rat: SRational, real: SReal) =>
           // evaluate the two as real numbers
           binOp(Add, real, SMath.rationalToReal(rat))
-        case (r: SReal, i: SInt) => binOp(Add, i, r) // reverse
-        case (r: SReal, f: SRational) => binOp(Add, f, r) // reverse
         case (SReal(a), SReal(b)) => SReal(a + b).!
-
-        case (_, expr) => nonNumber(expr)
+        case pair => reverseBinOp(Add)(pair)
       }
     }
 
@@ -163,7 +159,6 @@ object Eval {
         case (SInt(a), SInt(b)) => SInt(a * b).!
         case (SInt(a), SRational(n, d)) => SRational(a * n, d).!
         case (SInt(a), SReal(b)) => SReal(a * b).!
-        case (r: SRational, i: SInt) => binOp(Multiply, i, r)
         case (SRational(n, d), SRational(n1, d1)) =>
           // multiply the numerators and denominators
           val num = n * n1
@@ -174,11 +169,8 @@ object Eval {
           SRational(num / gcd, denom / gcd).!
         case (rat: SRational, real: SReal) =>
           binOp(Multiply, real, SMath.rationalToReal(rat))
-        case (r: SReal, i: SInt) => binOp(Multiply, i, r)
-        case (r: SReal, f: SRational) => binOp(Multiply, f, r)
         case (SReal(a), SReal(b)) => SReal(a * b).!
-
-        case (_, expr) => nonNumber(expr)
+        case pair => reverseBinOp(Multiply)(pair)
       }
     }
 
@@ -222,11 +214,24 @@ object Eval {
       case SReal(n) => SReal(-n)
     }
 
-    def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
-
     // TODO: Simplify resulting rationals to avoid awkward values
     //  such as 1/1.
     add orElse subtract orElse multiply orElse divide
+  }
+
+  def relational: PartialEval = {
+    case Cons(Equal, SNil) => TooFewArguments(2, 0).!
+    case Cons(Equal, Cons(h, SNil)) => TooFewArguments(2, 1).!
+    case Cons(Equal, Cons(h, t)) => foldS(t, h) {
+      case (SInt(a), SInt(b)) => SBoolean(a == b).!
+      case (SInt(a), SRational(n, d)) => SBoolean(a == n / d).!
+      case (SInt(a), SReal(n)) => SBoolean(a == n).!
+      case (SRational(n, d), SRational(n1, d1)) => SBoolean(n / d == n1 / d1).!
+      case (r: SRational, i: SInt) => binOp(Equal, i, r)
+      case (SRational(n, d), SReal(r)) => SBoolean(n / d == r).!
+      case (r: SReal, i: SInt) => binOp(Equal, i, r)
+      case (r: SReal, f: SRational) => binOp(Equal, f, r)
+    }
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
@@ -248,4 +253,13 @@ object Eval {
 
   def binOp(op: SExpr, a: SNumber, b: SNumber) =
     Eval(Cons(op, Cons(a, Cons(b, SNil))))
+
+  def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
+
+  def reverseBinOp(op: SExpr): PartialFunction[(SExpr, SExpr), Evaluation] = {
+    case (f: SRational, i: SInt) => binOp(op, i, f)
+    case (r: SReal, i: SInt) => binOp(op, i, r)
+    case (r: SReal, f: SRational) => binOp(op, f, r)
+    case (_, expr) => nonNumber(expr)
+  }
 }

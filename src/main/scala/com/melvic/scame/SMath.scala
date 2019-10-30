@@ -28,7 +28,7 @@ object SMath {
       else recurse(t + 1, n1 / 10)
     }
 
-    10 ^ recurse(0, n)
+    Math.pow(10, recurse(0, n)).toInt
   }
 
   def rationalToReal: SRational => SReal = { case SRational(n, d) =>
@@ -42,7 +42,7 @@ object SMath {
     else {
       val fracString = frac.toString.split("\\.")(1)
       val denom = fracString.toInt
-      val tens = 10 ^ fracString.length
+      val tens = Math.pow(10, fracString.length).toInt
       SRational(dec * tens + denom, denom)
     }
   }
