@@ -220,18 +220,20 @@ object Eval {
   }
 
   def relational: PartialEval = {
-    case Cons(Equal, SNil) => TooFewArguments(2, 0).!
-    case Cons(Equal, Cons(h, SNil)) => TooFewArguments(2, 1).!
-    case Cons(Equal, Cons(h, t)) => foldS(t, h) {
-      case (SInt(a), SInt(b)) => SBoolean(a == b).!
-      case (SInt(a), SRational(n, d)) => SBoolean(a == n / d).!
-      case (SInt(a), SReal(n)) => SBoolean(a == n).!
-      case (SRational(n, d), SRational(n1, d1)) => SBoolean(n / d == n1 / d1).!
-      case (r: SRational, i: SInt) => binOp(Equal, i, r)
-      case (SRational(n, d), SReal(r)) => SBoolean(n / d == r).!
-      case (r: SReal, i: SInt) => binOp(Equal, i, r)
-      case (r: SReal, f: SRational) => binOp(Equal, f, r)
+    def equal: PartialEval = {
+      case Cons(Equal, SNil) => TooFewArguments(2, 0).!
+      case Cons(Equal, Cons(h, SNil)) => TooFewArguments(2, 1).!
+      case Cons(Equal, Cons(h, t)) => foldS(t, h) {
+        case (SInt(a), SInt(b)) => SBoolean(a == b).!
+        case (SInt(a), SRational(n, d)) => SBoolean(a == n / d).!
+        case (SInt(a), SReal(n)) => SBoolean(a == n).!
+        case (SRational(n, d), SRational(n1, d1)) => SBoolean(n / d == n1 / d1).!
+        case (SRational(n, d), SReal(r)) => SBoolean(n / d == r).!
+        case (SReal(a), SReal(b)) => SBoolean(a == b).!
+        case pair => reverseBinOp(Multiply)(pair)
+      }
     }
+    equal
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
