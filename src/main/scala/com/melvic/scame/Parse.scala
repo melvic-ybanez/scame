@@ -36,34 +36,30 @@ object Parse {
 
   def symbol[_: P] = P(CharsWhile(c => !invalidSymbol.contains(c.toString)).!).map(SSymbol)
 
-  def define[_: P] = P(DefineLiteral).map(_ => Define)
-  def quote[_: P] = P(QuoteLiteral).map(_ => Quote)
-  def sLambda[_: P] = P(LambdaLiteral).map(_ => Lambda)
-  def cond[_: P] = P(CondLiteral).map(_ => Cond)
-  def let[_: P] = P(LetLiteral).map(_ => Let)
+  def literal[_: P, E <: SExpr](kv: (String, E)) = P(kv._1).map(_ => kv._2)
 
-  def specialForm[_: P] = P(define | quote | sLambda | cond | let)
+  def literals[_: P, E <: SExpr](literalsMap: Map[String, E]) =
+    literalsMap.tail.foldLeft(literal(literalsMap.head)) {
+      case (parser, kv) => P(parser | literal(kv))
+    }
 
-  def add[_: P] = P("+").map(_ => Add)
-  def subtract[_: P] = P("-").map(_ => Subtract)
-  def multiply[_: P] = P("*").map(_ => Multiply)
-  def divide[_: P] = P("/").map(_ => Divide)
+  def specialForm[_: P] = literals(Map(DefineLiteral -> Define,
+    QuoteLiteral -> Quote, LambdaLiteral -> Lambda, CondLiteral -> Cond, LetLiteral -> Let))
 
-  def equal[_: P] = P("=").map(_ => Equal)
-  def greaterThan[_: P] = P(">").map(_ => GT)
-  def greaterOrEqual[_: P] = P(">=").map(_ => GTE)
-  def lesserThan[_: P] = P("<").map(_ => LT)
-  def lesserOrEqual[_: P] = P("<=").map(_ => LTE)
+  def arithmetic[_: P] = literals(Map("+" -> Add,
+    "-" -> Subtract, "*" -> Multiply, "/" -> Divide))
 
-  def arithmetic[_: P] = P(add | subtract | multiply | divide)
+  def relational[_: P] = literals(Map("=" -> Equal,
+    ">" -> GT, ">=" -> GTE, "<" -> LT, "<=" -> LTE))
 
-  def function[_: P] = P(arithmetic)
+  def function[_: P] = P(arithmetic | relational)
 
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => Cons(Quote, Cons(expr, SNil)))
 
   def atom[_: P]: P[Atom] = P(boolean | number | specialForm | character)
 
-  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ spaces ~ ")").map(_.toList.asSList)
+  def sList[_: P]: P[SList] = P("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ spaces ~ ")")
+    .map(_.toList.asSList)
 
   def expression[_: P]: P[SExpr] = P(atom | sList | quoteSugar | function | symbol)
 
