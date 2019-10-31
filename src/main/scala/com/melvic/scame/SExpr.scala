@@ -10,8 +10,7 @@ object SExpr {
   sealed trait SBoolean extends Atom
 
   object SBoolean {
-    def apply(bool: Boolean): SBoolean =
-      if (bool) STrue else SFalse
+    def apply(bool: Boolean): SBoolean = if (bool) STrue else SFalse
   }
 
   case object SFalse extends SBoolean

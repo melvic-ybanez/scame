@@ -14,7 +14,7 @@ trait ErrorCodeInstances {
         
         s"Expression mismatch. Expected: $expectedString. Got: ${Show[SExpr](got)}"
       case TooFewArguments(expectedMin, got) =>
-        s"Too Few Arguments. Expected at least $expectedMin. Got $got"
+        s"Too Few Arguments. Expected: at least $expectedMin. Got: $got"
     })
 }
 

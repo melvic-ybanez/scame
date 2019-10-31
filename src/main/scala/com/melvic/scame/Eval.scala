@@ -1,7 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Env.EnvConfig
-import com.melvic.scame.ErrorCode.{ExprMismatch, IncorrectParamCount, TooFewArguments}
+import com.melvic.scame.ErrorCode._
 import com.melvic.scame.Eval.foldS
 import com.melvic.scame.SExpr._
 import zio.ZIO
@@ -20,9 +20,7 @@ object Eval {
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
     val eval = atom orElse symbol orElse emptyList orElse
-      pair orElse define orElse sLambda orElse
-      cond orElse let orElse arithmetic orElse
-      quote
+      pair orElse specialForms orElse builtInFunctions
     eval(expr)
   }
 
@@ -48,6 +46,9 @@ object Eval {
     case Cons(Cons, tail) =>
       ExprMismatch("pair" +: Vector(), tail).!
   }
+
+  def specialForms: PartialEval = define orElse sLambda orElse
+    cond orElse let  orElse quote
 
   def define: PartialEval = {
     case Cons(Define, Cons(SSymbol(name), SNil)) => Eval(Define(name, SNil))
@@ -130,6 +131,8 @@ object Eval {
 
     case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
+
+  def builtInFunctions: PartialEval = arithmetic orElse relational
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
@@ -220,20 +223,39 @@ object Eval {
   }
 
   def relational: PartialEval = {
-    def equal: PartialEval = {
-      case Cons(Equal, SNil) => TooFewArguments(2, 0).!
-      case Cons(Equal, Cons(h, SNil)) => TooFewArguments(2, 1).!
-      case Cons(Equal, Cons(h, t)) => foldS(t, h) {
-        case (SInt(a), SInt(b)) => SBoolean(a == b).!
-        case (SInt(a), SRational(n, d)) => SBoolean(a == n / d).!
-        case (SInt(a), SReal(n)) => SBoolean(a == n).!
-        case (SRational(n, d), SRational(n1, d1)) => SBoolean(n / d == n1 / d1).!
-        case (SRational(n, d), SReal(r)) => SBoolean(n / d == r).!
-        case (SReal(a), SReal(b)) => SBoolean(a == b).!
-        case pair => reverseBinOp(Multiply)(pair)
-      }
+    def evalRelational(op: Relational)(f: (Double, Double) => Boolean): PartialEval = {
+      case Cons(`op`, SNil) => TooFewArguments(2, 0).!
+      case Cons(`op`, Cons(_, SNil)) => TooFewArguments(2, 1).!
+      case Cons(`op`, Cons(h, t)) =>
+        def result(number: SNumber, p: => Boolean) = if (p) number.! else SFalse.!
+
+        for {
+          expr <- foldS(t, h) {
+            // Note: This will not short-circuit the foldS
+            case (SFalse, _) => SFalse.!
+
+            case (SInt(a), i @ SInt(b)) => result(i, f(a, b))
+            case (SInt(a), r @ SRational(n, d)) => result(r, f(a, n / d))
+            case (SInt(a), r @ SReal(n)) => result(r, f(a, n))
+            case (SRational(n, d), r @ SRational(n1, d1)) => result(r, f(n / d, n1 / d1))
+            case (SRational(n, d), sr @ SReal(r)) => result(sr, f(n / d, r))
+            case (SReal(a), r @ SReal(b)) => result(r, f(a, b))
+            case pair => reverseBinOp(`op`)(pair)
+          }
+          bool <- expr match {
+            case _: SNumber => STrue.!
+            case e => e.!
+          }
+        } yield bool
     }
-    equal
+
+    def equal = evalRelational(Equal)(_ == _)
+    def greater = evalRelational(GT)(_ > _)
+    def greaterEqual = evalRelational(GTE)(_ >= _)
+    def less = evalRelational(LT)(_ < _)
+    def lessEqual = evalRelational(LTE)(_ <= _)
+
+    equal orElse greater orElse greaterEqual orElse less orElse lessEqual
   }
 
   def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =

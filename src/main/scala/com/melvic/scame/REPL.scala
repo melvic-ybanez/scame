@@ -27,6 +27,7 @@ object REPL {
     case Parsed.Success(value, _) => for {
       result <- Eval.apply.provide(EvalConfig(value, env)).either
       newEnv <- result match {
+        // TODO: Report locations (or show stacktrace) of errors
         case Left(err) => output(Show[ErrorCode](err))
         case Right(sexpr) => output(Show[SExpr](sexpr), sexpr match {
           case Definition(newEnv) => Some(newEnv)
