@@ -1,5 +1,7 @@
 package com.melvic.scame
 
+import com.melvic.scame.SExpr._
+
 object Literals {
   val TrueLiteral = "#t"
   val FalseLiteral = "#f"
@@ -18,4 +20,10 @@ object Literals {
   val BackspaceLiteral = "backspace"
 
   val invalidSymbol = "\"\'() "
+
+  val ArithmeticMap = Map("+" -> Add,
+    "-" -> Subtract, "*" -> Multiply, "/" -> Divide)
+
+  val RelationalMap = Map("=" -> Equal,
+    ">" -> GT, ">=" -> GTE, "<" -> LT, "<=" -> LTE)
 }

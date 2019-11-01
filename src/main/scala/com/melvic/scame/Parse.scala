@@ -46,11 +46,9 @@ object Parse {
   def specialForm[_: P] = literals(Map(DefineLiteral -> Define,
     QuoteLiteral -> Quote, LambdaLiteral -> Lambda, CondLiteral -> Cond, LetLiteral -> Let))
 
-  def arithmetic[_: P] = literals(Map("+" -> Add,
-    "-" -> Subtract, "*" -> Multiply, "/" -> Divide))
+  def arithmetic[_: P] = literals(ArithmeticMap)
 
-  def relational[_: P] = literals(Map("=" -> Equal,
-    ">" -> GT, ">=" -> GTE, "<" -> LT, "<=" -> LTE))
+  def relational[_: P] = literals(RelationalMap)
 
   def function[_: P] = P(arithmetic | relational)
 

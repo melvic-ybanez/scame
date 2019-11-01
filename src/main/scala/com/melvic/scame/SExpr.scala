@@ -6,13 +6,11 @@ sealed trait SExpr
 //  see: https://ds26gte.github.io/tyscheme/index-Z-H-4.html
 object SExpr {
   sealed trait Atom extends SExpr
+  sealed trait SList extends SExpr
+  sealed trait SFunction extends Atom
+  sealed trait SpecialForm extends Atom
 
   sealed trait SBoolean extends Atom
-
-  object SBoolean {
-    def apply(bool: Boolean): SBoolean = if (bool) STrue else SFalse
-  }
-
   case object SFalse extends SBoolean
   case object STrue extends SBoolean
 
@@ -28,13 +26,11 @@ object SExpr {
   final case class SReal(value: Double) extends SNumber
 
   // Lists
-  sealed trait SList extends SExpr
   case object SNil extends SList
   final case class Cons(head: SExpr, tail: SList) extends SList
   final case class Pair(first: SExpr, second: SExpr) extends SExpr
 
   // Special Forms as heads of the lists
-  sealed trait SpecialForm extends Atom
   case object Define extends SpecialForm
   case object Lambda extends SpecialForm
   case object Cons extends SpecialForm
@@ -52,14 +48,14 @@ object SExpr {
   final case class Definition(env: Env) extends SExpr
 
   // Arithmetic operators
-  sealed trait Arithmetic extends SExpr
+  sealed trait Arithmetic extends SFunction
   case object Add extends Arithmetic
   case object Subtract extends Arithmetic
   case object Multiply extends Arithmetic
   case object Divide extends Arithmetic
 
   // Relational operators
-  sealed trait Relational extends SExpr
+  sealed trait Relational extends SFunction
   case object Equal extends Relational
   case object GT extends Relational
   case object GTE extends Relational
