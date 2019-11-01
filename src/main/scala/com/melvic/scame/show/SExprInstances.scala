@@ -1,8 +1,8 @@
-package com.melvic.scame.instances
+package com.melvic.scame.show
 
 import com.melvic.scame.Literals.{FalseLiteral, TrueLiteral}
 import com.melvic.scame.SExpr._
-import com.melvic.scame.{Literals, SExpr, Show}
+import com.melvic.scame.{Literals, SExpr}
 
 trait SExprInstances {
   implicit val showBoolean: Show[SBoolean] = {

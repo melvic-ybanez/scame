@@ -1,7 +1,7 @@
-package com.melvic.scame.instances
+package com.melvic.scame.show
 
 import com.melvic.scame.ErrorCode._
-import com.melvic.scame.{ErrorCode, SExpr, Show}
+import com.melvic.scame.{ErrorCode, SExpr}
 
 trait ErrorCodeInstances {
   implicit val showErrorCode: Show[ErrorCode] = symbol =>
