@@ -1,8 +1,6 @@
 package com.melvic.scame
 
-import com.melvic.scame.Env.EnvConfig
 import com.melvic.scame.ErrorCode._
-import com.melvic.scame.Eval.foldS
 import com.melvic.scame.SExpr._
 import zio.ZIO
 
@@ -19,18 +17,27 @@ object Eval {
     apply.provideSome[EvalConfig](_.copy(expr = expression))
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
-    val eval = atom orElse symbol orElse emptyList orElse
-      pair orElse specialForms orElse builtInFunctions
+    val eval = atom orElse symbol orElse pair orElse
+      specialForms orElse builtInFunctions orElse sList
     eval(expr)
   }
 
   def atom: PartialEval = { case atom: Atom => atom.! }
 
   def symbol: PartialEval = { case SSymbol(name) =>
-    provideNameToEnv(name, Env.globalSearch)
+    for {
+      config <- ZIO.environment[EvalConfig]
+      sexpr <- Env.globalSearch.provide((name, config.env))
+    } yield sexpr
   }
 
-  def emptyList: PartialEval = { case SNil => SNil.! }
+  def sList: PartialEval = {
+    case SNil => SNil.!
+    case Cons(expr, args) => for {
+      func <- Eval(expr)
+      result <- Eval(Cons(func, args))
+    } yield result
+  }
 
   def pair: PartialEval = {
     case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).!
@@ -61,24 +68,30 @@ object Eval {
   }
 
   def sLambda: PartialEval = {
+    // A lambda expression requires a body
+    case Cons(Lambda, Cons(_, SNil)) => InvalidLambda.!
+
     // Construct a lambda object. Both the params and the body shouldn't
     // be evaluated.
     case Cons(Lambda, Cons(params, body)) => Lambda(params, body).!
 
-    case Cons(Lambda(params: SList, body), args: SList) =>
-      def recurse(env: Env): (SList, SList) => EvaluationE[Env] = {
+    case Cons(Lambda(params: SList, Cons(body, _)), args: SList) =>
+      /**
+       * Binds every parameter to its corresponding parameter.
+       */
+      def assignArgs(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
-        case (Cons(SSymbol(param), t), Cons(arg, t1)) => for {
+        case (Cons(SSymbol(param), symbols), Cons(arg, args)) => for {
           evaluatedArg <- Eval(arg)
-          newEnv <- register(param, evaluatedArg)
-          result <- recurse(newEnv)(t, t1)
+          newEnv <- Env.register(evaluatedArg).provide((param, env))
+          result <- assignArgs(newEnv)(symbols, args)
         } yield result
         case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h).!
       }
 
       for {
         config <- ZIO.environment[EvalConfig]
-        env <- recurse(config.env)(params, args)
+        env <- assignArgs(config.env)(params, args)
         result <- Eval(body, env)
       } yield result
 
@@ -258,10 +271,8 @@ object Eval {
     equal orElse greater orElse greaterEqual orElse less orElse lessEqual
   }
 
-  def provideNameToEnv[A](name: String, env: ZIO[EnvConfig, ErrorCode, A]) =
-    env.provideSome[EvalConfig](e => (name, e.env))
-
-  def register(name: String, expr: SExpr) = provideNameToEnv(name, Env.register(expr))
+  def register(name: String, expr: SExpr) =
+    Env.register(expr).provideSome[EvalConfig](e => (name, e.env))
 
   /**
    * Short-circuiting fold designed specifically for evaluated s-expressions.
@@ -270,7 +281,8 @@ object Eval {
   def foldS(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
     case SNil => acc.!
     case Cons(head, tail) => for {
-      a <- f(acc, head)
+      h <- Eval(head)
+      a <- f(acc, h)
       r <- foldS(tail, a)(f)
     } yield r
   }

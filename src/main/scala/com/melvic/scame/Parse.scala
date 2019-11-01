@@ -1,9 +1,9 @@
 package com.melvic.scame
 
-import fastparse._
-import NoWhitespace._
+import com.melvic.scame.Literals._
 import com.melvic.scame.SExpr.{Define, Quote, _}
-import Literals._
+import fastparse.NoWhitespace._
+import fastparse._
 
 // TODO: Add support for comments
 object Parse {

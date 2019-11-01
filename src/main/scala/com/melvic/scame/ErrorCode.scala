@@ -8,4 +8,5 @@ object ErrorCode {
   final case class SymbolAlreadyExists(name: String) extends ErrorCode
   final case class IncorrectParamCount(expected: Int, got: Int) extends ErrorCode
   final case class TooFewArguments(expectedMin: Int, got: Int) extends ErrorCode
+  case object InvalidLambda extends ErrorCode
 }
