@@ -16,6 +16,7 @@ trait ErrorCodeInstances {
       case TooFewArguments(expectedMin, got) =>
         s"Too Few Arguments. Expected: at least $expectedMin. Got: $got"
       case InvalidLambda => "Invalid Lambda"
+      case NotAFunction(expr) => s"${Show[SExpr](expr)} is not a function"
     })
 }
 

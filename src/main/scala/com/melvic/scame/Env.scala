@@ -26,7 +26,6 @@ object Env {
    */
   type ReadEnv = EnvOp[SymbolNotFound, SExpr]
 
-
   case object EmptyEnv extends Env
 
   final case class NonEmptyEnv(lookup: Map[String, SExpr], parent: Env) extends Env

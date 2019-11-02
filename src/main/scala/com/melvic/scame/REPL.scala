@@ -3,6 +3,7 @@ package com.melvic.scame
 import com.melvic.scame.Env.EmptyEnv
 import com.melvic.scame.Eval.EvalConfig
 import com.melvic.scame.SExpr.Definition
+import com.melvic.scame.show.Show
 import fastparse.Parsed
 import zio.ZIO
 import zio.console._

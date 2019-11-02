@@ -35,7 +35,7 @@ object Eval {
     case SNil => SNil.!
     case Cons(expr, args) => for {
       func <- Eval(expr)
-      result <- Eval(Cons(func, args))
+      result <- callFunction(Cons(func, args))
     } yield result
   }
 
@@ -54,8 +54,8 @@ object Eval {
       ExprMismatch("pair" +: Vector(), tail).!
   }
 
-  def specialForms: PartialEval = define orElse sLambda orElse
-    cond orElse let  orElse quote
+  def specialForms: PartialEval = define orElse
+    cond orElse let  orElse quote orElse sLambda
 
   def define: PartialEval = {
     case Cons(Define, Cons(SSymbol(name), SNil)) => Eval(Define(name, SNil))
@@ -74,7 +74,9 @@ object Eval {
     // Construct a lambda object. Both the params and the body shouldn't
     // be evaluated.
     case Cons(Lambda, Cons(params, body)) => Lambda(params, body).!
+  }
 
+  def callFunction: PartialEval = {
     case Cons(Lambda(params: SList, Cons(body, _)), args: SList) =>
       /**
        * Binds every parameter to its corresponding parameter.
@@ -108,6 +110,8 @@ object Eval {
         env <- register(param, argList)
         result <- Eval(body, env)
       } yield result
+
+    case Cons(expr, _) => NotAFunction(expr).!
   }
 
   def quote: PartialEval = {

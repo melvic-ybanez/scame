@@ -2,7 +2,7 @@ package com.melvic.scame
 
 sealed trait SExpr
 
-// TODO: Strings, Vectors, Procedure, Conversion between types
+// TODO: Strings, Vectors, Conversion between types
 //  see: https://ds26gte.github.io/tyscheme/index-Z-H-4.html
 object SExpr {
   sealed trait Atom extends SExpr
