@@ -3,6 +3,7 @@ package com.melvic.scame.show
 import com.melvic.scame.ErrorCode._
 import com.melvic.scame.{ErrorCode, SExpr}
 
+// TODO: Report locations (or show stacktrace) of errors
 trait ErrorCodeInstances {
   implicit val showErrorCode: Show[ErrorCode] = symbol =>
     "Error: " + (symbol match {

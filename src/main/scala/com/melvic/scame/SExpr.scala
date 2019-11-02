@@ -35,8 +35,8 @@ object SExpr {
   case object Lambda extends SpecialForm
   case object Cons extends SpecialForm
   case object Quote extends SpecialForm
-  case object Cond extends SpecialForm
-  case object Let extends SpecialForm
+  case object Cond extends SpecialForm    // TODO: Support for If
+  case object Let extends SpecialForm     // TODO: Support for LetRec
 
   // Special Forms
   final case class Define(name: String, value: SExpr) extends SExpr
