@@ -1,6 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.ErrorCode._
+import com.melvic.scame.SExpr.SList._
 import com.melvic.scame.SExpr._
 import zio.ZIO
 
@@ -33,24 +34,24 @@ object Eval {
 
   def sList: PartialEval = {
     case SNil => SNil.!
-    case Cons(expr, args) => for {
+    case expr :: args => for {
       func <- Eval(expr)
-      result <- callFunction(Cons(func, args))
+      result <- callFunction(func :: args)
     } yield result
   }
 
   def pair: PartialEval = {
-    case Cons(Cons, Cons(_, SNil)) => IncorrectParamCount(2, 1).!
-    case Cons(Cons, Cons(head, tail)) => for {
+    case Cons :: _ :: SNil => IncorrectParamCount(2, 1).!
+    case Cons :: head :: tail => for {
       h <- Eval(head)
       t <- Eval(tail)
     } yield t match {
       // If the tail is a list, the whole cons is a proper list.
-      case tList: SList => Cons(h, tList)
+      case tList: SList => h :: tList
       // Otherwise, it remains an improper list.
       case _ => Pair(h, t)
     }
-    case Cons(Cons, tail) =>
+    case Cons :: tail =>
       ExprMismatch("pair" +: Vector(), tail).!
   }
 
@@ -58,37 +59,37 @@ object Eval {
     cond orElse let  orElse quote orElse sLambda
 
   def define: PartialEval = {
-    case Cons(Define, Cons(SSymbol(name), SNil)) => Eval(Define(name, SNil))
-    case Cons(Define, Cons(SSymbol(name), Cons(value, SNil))) => Eval(value).flatMap { v =>
+    case Define :: SSymbol(name) :: SNil => Eval(Define(name, SNil))
+    case Define :: SSymbol(name) :: value :: SNil => Eval(value).flatMap { v =>
       Eval(Define(name, v))
     }
-    case Cons(Define, body) => ExprMismatch(
+    case Define :: body => ExprMismatch(
       Constants.Symbol +: Constants.Pair +: Vector(), body).!
     case Define(name, value) => register(name, value).map(Definition)
   }
 
   def sLambda: PartialEval = {
     // A lambda expression requires a body
-    case Cons(Lambda, Cons(_, SNil)) => InvalidLambda.!
+    case Lambda :: _ :: SNil => InvalidLambda.!
 
     // Construct a lambda object. Both the params and the body shouldn't
     // be evaluated.
-    case Cons(Lambda, Cons(params, body)) => Lambda(params, body).!
+    case Lambda :: params :: body => Lambda(params, body).!
   }
 
   def callFunction: PartialEval = {
-    case Cons(Lambda(params: SList, Cons(body, _)), args: SList) =>
+    case Lambda(params: SList, body :: _) :: args =>
       /**
        * Binds every parameter to its corresponding parameter.
        */
       def assignArgs(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)
-        case (Cons(SSymbol(param), symbols), Cons(arg, args)) => for {
+        case (SSymbol(param) :: symbols, arg :: args) => for {
           evaluatedArg <- Eval(arg)
           newEnv <- Env.register(evaluatedArg).provide((param, env))
           result <- assignArgs(newEnv)(symbols, args)
         } yield result
-        case (Cons(h, _), _) => ExprMismatch(Vector(Constants.Symbol), h).!
+        case (h :: _, _) => ExprMismatch(Vector(Constants.Symbol), h).!
       }
 
       for {
@@ -99,34 +100,34 @@ object Eval {
 
     // If the parameter is a symbol instead of a list, set it to the
     // whole argument list.
-    case Cons(Lambda(SSymbol(param), body), args) =>
+    case Lambda(SSymbol(param), body) :: args =>
       for {
         argList <- args.asScalaList.foldLeft[EvaluationE[SList]](SNil.!) { (acc, arg) =>
           for {
             tail <- acc
             head <- Eval(arg)
-          } yield Cons(head, tail)
+          } yield ::(head, tail)
         }
         env <- register(param, argList)
         result <- Eval(body, env)
       } yield result
 
-    case Cons(expr, _) => NotAFunction(expr).!
+    case expr :: _ => NotAFunction(expr).!
   }
 
   def quote: PartialEval = {
-    case Cons(Quote, Cons(arg, _)) => arg.!
+    case Quote :: arg :: _ => arg.!
   }
 
   def cond: PartialEval = {
-    case Cons(Cond, Cons(Cons(pred, Cons(body, _)), _)) if !SExpr.falsy(pred) => Eval(body)
-    case Cons(Cond, Cons(Cons(pred, _), SNil)) if SExpr.falsy(pred) => SNil.!
-    case Cons(Cond, Cons(Cons(pred, _), rest)) if SExpr.falsy(pred) => Eval(Cons(Cond, rest))
-    case Cons(Cond, Cons(Cons(sexpr, body), rest)) => for {
+    case Cond :: (pred :: body :: _) :: _ if !SExpr.falsy(pred) => Eval(body)
+    case Cond :: (pred :: _) :: SNil if SExpr.falsy(pred) => SNil.!
+    case Cond :: (pred :: _) :: rest if SExpr.falsy(pred) => Eval(Cond :: rest)
+    case Cond :: (sexpr :: body) :: rest => for {
       head <- Eval(sexpr)
-      result <- Eval(Cons(Cond, Cons(Cons(head, body), rest)))
+      result <- Eval(Cond :: (head :: body) :: rest)
     } yield result
-    case Cons(Cond, expr) => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).!
+    case Cond :: expr => ExprMismatch(Vector(s"List of ${Constants.Pair}s"), expr).!
   }
 
   /**
@@ -134,26 +135,26 @@ object Eval {
    * and the main body of computation.
    */
   def let: PartialEval = {
-    // If the head of the first argument is a non-empty list, see if you can make
+    // If the head of the first argument is a list, see if you can make
     // a definition out of it by delegating to the `define` special form.
-    case Cons(Let, Cons(Cons(define: Cons, defineRest), body)) => for {
-      definedHead <- Eval(Cons(Define, define))
+    case Let :: ((define: SList) :: defineRest) :: body => for {
+      definedHead <- Eval(::(Define, define))
       result <- definedHead match {
-        case Definition(env) => Eval(Cons(Let, Cons(defineRest, body)), env)
+        case Definition(env) => Eval(Let :: defineRest :: body, env)
       }
     } yield result
 
     // If there aren't any definitions to evaluate, evaluate the body.
-    case Cons(Let, Cons(SNil, Cons(body, SNil))) => Eval(body)
+    case Let :: SNil :: body :: SNil => Eval(body)
 
-    case Cons(Let, expr) => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
+    case Let :: expr => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
 
   def builtInFunctions: PartialEval = arithmetic orElse relational
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
-      case Cons(Add, args) => foldS(args, SInt(0)) {
+      case Add :: args => foldS(args, SInt(0)) {
         case (SInt(a), SInt(b)) => SInt(a + b).!
         case (SInt(a), SRational(n, d)) => SRational(a * d + n, d).!
         case (SInt(a), SReal(b)) => SReal(a + b).!
@@ -175,7 +176,7 @@ object Eval {
     def subtract: PartialEval = reverseOp(Subtract, Add)(negate)
 
     def multiply: PartialEval = {
-      case Cons(Multiply, args: SList) => foldS(args, SInt(1)) {
+      case Multiply :: args => foldS(args, SInt(1)) {
         case (SInt(a), SInt(b)) => SInt(a * b).!
         case (SInt(a), SRational(n, d)) => SRational(a * n, d).!
         case (SInt(a), SReal(b)) => SReal(a * b).!
@@ -208,11 +209,11 @@ object Eval {
     }
 
     def reverseOp(op: Arithmetic, op1: Arithmetic)(f: SNumber => SNumber): PartialEval = {
-      case Cons(`op`, SNil) => TooFewArguments(1, 0).!
-      case Cons(`op`, Cons(n: SNumber, SNil)) => f(n).!
-      case Cons(`op`, Cons(h: SNumber, t)) => for {
+      case `op` :: SNil => TooFewArguments(1, 0).!
+      case `op` :: (n: SNumber) :: SNil => f(n).!
+      case `op` :: (h: SNumber) :: t => for {
         reverse <- foldS(t, SNil) {
-          case (acc: SList, n: SNumber) => Cons(f(n), acc).!
+          case (acc: SList, n: SNumber) => (f(n) :: acc).!
           case (_, n) => nonNumber(n)
         }
 
@@ -223,9 +224,9 @@ object Eval {
           case e => nonNumber(e)
         }
 
-        diff <- Eval(Cons(op1, Cons(h, reversedNumbers)))
+        diff <- Eval(op1 :: h :: reversedNumbers)
       } yield diff
-      case Cons(`op`, Cons(expr, _)) => nonNumber(expr)
+      case `op` :: expr :: _ => nonNumber(expr)
     }
 
     def negate: SNumber => SNumber = {
@@ -241,9 +242,9 @@ object Eval {
 
   def relational: PartialEval = {
     def evalRelational(op: Relational)(f: (Double, Double) => Boolean): PartialEval = {
-      case Cons(`op`, SNil) => TooFewArguments(2, 0).!
-      case Cons(`op`, Cons(_, SNil)) => TooFewArguments(2, 1).!
-      case Cons(`op`, Cons(h, t)) =>
+      case `op` :: SNil => TooFewArguments(2, 0).!
+      case `op` :: _ :: SNil => TooFewArguments(2, 1).!
+      case `op` :: h :: t =>
         def result(number: SNumber, p: => Boolean) = if (p) number.! else SFalse.!
 
         for {
@@ -284,7 +285,7 @@ object Eval {
    */
   def foldS(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
     case SNil => acc.!
-    case Cons(head, tail) => for {
+    case head :: tail => for {
       h <- Eval(head)
       a <- f(acc, h)
       r <- foldS(tail, a)(f)
@@ -292,7 +293,7 @@ object Eval {
   }
 
   def binOp(op: SExpr, a: SNumber, b: SNumber) =
-    Eval(Cons(op, Cons(a, Cons(b, SNil))))
+    Eval(op :: a :: b :: SNil)
 
   def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
 

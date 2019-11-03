@@ -1,6 +1,7 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr.{Cons, SList, SNil}
+import com.melvic.scame.SExpr.SList
+import com.melvic.scame.SExpr.SList._
 import zio.ZIO
 
 import scala.annotation.tailrec
@@ -14,12 +15,12 @@ trait Implicits {
     def ! = ZIO.fail(error)
   }
 
-  implicit class SListToScalaList(list: SList) {
+  implicit class SListOps(list: SList) {
     def asScalaList: List[SExpr] = {
       @tailrec
       def recurse(sList: SList, acc: List[SExpr]): List[SExpr] = sList match {
         case SNil => acc
-        case Cons(head, tail) => recurse(tail, head :: acc)
+        case head :: tail => recurse(tail, head :: acc)
       }
 
       recurse(list, Nil).reverse
@@ -28,7 +29,7 @@ trait Implicits {
 
   implicit class ScalaListToSList(list: List[SExpr]) {
     def asSList: SList = list.reverse.foldLeft[SList](SNil) { (acc, expr) =>
-      Cons(expr, acc)
+      expr :: acc
     }
   }
 }

@@ -5,8 +5,9 @@ sealed trait SExpr
 // TODO: Strings, Vectors, Conversion between types
 //  see: https://ds26gte.github.io/tyscheme/index-Z-H-4.html
 object SExpr {
+  import SList._
+
   sealed trait Atom extends SExpr
-  sealed trait SList extends SExpr
   sealed trait SFunction extends Atom
   sealed trait SpecialForm extends Atom
 
@@ -25,10 +26,15 @@ object SExpr {
   final case class SRational(numerator: Int, denominator: Int) extends SNumber
   final case class SReal(value: Double) extends SNumber
 
-  // Lists
-  case object SNil extends SList
-  final case class Cons(head: SExpr, tail: SList) extends SList
-  final case class Pair(first: SExpr, second: SExpr) extends SExpr
+  sealed trait SList extends SExpr {
+    def ::(sexpr: SExpr): SList = SList.::(sexpr, this)
+  }
+
+  object SList {
+    case object SNil extends SList
+    final case class ::(head: SExpr, tail: SList) extends SList
+    final case class Pair(first: SExpr, second: SExpr) extends SExpr
+  }
 
   // Special Forms as heads of the lists
   case object Define extends SpecialForm

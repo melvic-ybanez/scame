@@ -2,7 +2,8 @@ package com.melvic.scame
 
 import com.melvic.scame.Env.EmptyEnv
 import com.melvic.scame.Eval.EvalConfig
-import com.melvic.scame.SExpr.{Cons, Quote, SNil}
+import com.melvic.scame.SExpr.Quote
+import com.melvic.scame.SExpr.SList._
 import com.melvic.scame.show.Show
 import fastparse.Parsed
 import zio.console._
@@ -31,7 +32,7 @@ object Run {
       val source = Source.fromFile(fileName)
       try source.mkString finally source.close()
     }
-    result <- fromString(sourceCode, EmptyEnv, expr => Cons(Quote, Cons(expr, SNil))) {
+    result <- fromString(sourceCode, EmptyEnv, expr => ::(Quote, ::(expr, SNil))) {
       case Left(err) => putStrLn(Show[ErrorCode](err))
       case _ => ZIO.succeed(())
     }
