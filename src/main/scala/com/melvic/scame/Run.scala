@@ -32,7 +32,7 @@ object Run {
       val source = Source.fromFile(fileName)
       try source.mkString finally source.close()
     }
-    result <- fromString(sourceCode, EmptyEnv, expr => ::(Quote, ::(expr, SNil))) {
+    result <- fromString(sourceCode, EmptyEnv, expr => Quote :: expr :: SNil) {
       case Left(err) => putStrLn(Show[ErrorCode](err))
       case _ => ZIO.succeed(())
     }
