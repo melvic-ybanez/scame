@@ -106,7 +106,7 @@ object Eval {
           for {
             tail <- acc
             head <- Eval(arg)
-          } yield ::(head, tail)
+          } yield head :: tail
         }
         env <- register(param, argList)
         result <- Eval(body, env)
@@ -138,7 +138,7 @@ object Eval {
     // If the head of the first argument is a list, see if you can make
     // a definition out of it by delegating to the `define` special form.
     case Let :: ((define: SList) :: defineRest) :: body => for {
-      definedHead <- Eval(::(Define, define))
+      definedHead <- Eval(Define :: define)
       result <- definedHead match {
         case Definition(env) => Eval(Let :: defineRest :: body, env)
       }
