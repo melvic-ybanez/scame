@@ -1,7 +1,6 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr.SList
-import com.melvic.scame.SExpr.SList._
+import com.melvic.scame.SExpr._
 import zio.ZIO
 
 import scala.annotation.tailrec

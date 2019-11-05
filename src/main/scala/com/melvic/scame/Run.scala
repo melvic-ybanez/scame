@@ -2,8 +2,7 @@ package com.melvic.scame
 
 import com.melvic.scame.Env.EmptyEnv
 import com.melvic.scame.Eval.EvalConfig
-import com.melvic.scame.SExpr.Quote
-import com.melvic.scame.SExpr.SList._
+import com.melvic.scame.SExpr._
 import com.melvic.scame.show.Show
 import fastparse.Parsed
 import zio.console._

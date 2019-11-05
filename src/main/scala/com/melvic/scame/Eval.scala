@@ -1,7 +1,6 @@
 package com.melvic.scame
 
 import com.melvic.scame.ErrorCode._
-import com.melvic.scame.SExpr.SList._
 import com.melvic.scame.SExpr._
 import zio.ZIO
 
@@ -150,7 +149,7 @@ object Eval {
     case Let :: expr => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
 
-  def builtInFunctions: PartialEval = arithmetic orElse relational
+  def builtInFunctions: PartialEval = arithmetic orElse relational orElse sEq
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
@@ -245,51 +244,72 @@ object Eval {
       case `op` :: SNil => TooFewArguments(2, 0).!
       case `op` :: _ :: SNil => TooFewArguments(2, 1).!
       case `op` :: h :: t =>
-        def result(number: SNumber, p: => Boolean) = if (p) number.! else SFalse.!
+        def result(number: SNumber, p: => Boolean) =
+          if (p) number.! else Return(SFalse).!
 
-        for {
-          expr <- foldS(t, h) {
-            // Note: This will not short-circuit the foldS
-            case (SFalse, _) => SFalse.!
-
-            case (SInt(a), i @ SInt(b)) => result(i, f(a, b))
-            case (SInt(a), r @ SRational(n, d)) => result(r, f(a, n / d))
-            case (SInt(a), r @ SReal(n)) => result(r, f(a, n))
-            case (SRational(n, d), r @ SRational(n1, d1)) => result(r, f(n / d, n1 / d1))
-            case (SRational(n, d), sr @ SReal(r)) => result(sr, f(n / d, r))
-            case (SReal(a), r @ SReal(b)) => result(r, f(a, b))
-            case pair => reverseBinOp(`op`)(pair)
-          }
-          bool <- expr match {
-            case _: SNumber => STrue.!
-            case e => e.!
-          }
-        } yield bool
+        boolFunc(t, h) {
+          case (SInt(a), i @ SInt(b)) => result(i, f(a, b))
+          case (SInt(a), r @ SRational(n, d)) => result(r, f(a, n / d))
+          case (SInt(a), r @ SReal(n)) => result(r, f(a, n))
+          case (SRational(n, d), r @ SRational(n1, d1)) => result(r, f(n / d, n1 / d1))
+          case (SRational(n, d), sr @ SReal(r)) => result(sr, f(n / d, r))
+          case (SReal(a), r @ SReal(b)) => result(r, f(a, b))
+          case pair => reverseBinOp(`op`)(pair)
+        }
     }
 
-    def equal = evalRelational(Equal)(_ == _)
+    def eqSign = evalRelational(EqSign)(_ == _)
     def greater = evalRelational(GT)(_ > _)
     def greaterEqual = evalRelational(GTE)(_ >= _)
     def less = evalRelational(LT)(_ < _)
     def lessEqual = evalRelational(LTE)(_ <= _)
 
-    equal orElse greater orElse greaterEqual orElse less orElse lessEqual
+    eqSign orElse greater orElse greaterEqual orElse less orElse lessEqual
+  }
+
+  def sEq: PartialEval = {
+    case Eq :: SNil => TooFewArguments(2, 0).!
+    case Eq :: _ :: SNil => TooFewArguments(2, 1).!
+    case Eq :: arg :: args => boolFunc(args, arg) {
+      // Symbols should be equal if they have the same name
+      // because symbols are unique
+      case (s @ SSymbol(a), SSymbol(b)) if a == b => s.!
+
+      case (a, b) if a eq b => a.!
+      case _ => Return(SFalse).!
+    }
   }
 
   def register(name: String, expr: SExpr) =
     Env.register(expr).provideSome[EvalConfig](e => (name, e.env))
 
+  type FoldS = (SList, SExpr) => ((SExpr, SExpr) => Evaluation) => Evaluation
+
   /**
    * Short-circuiting fold designed specifically for evaluated s-expressions.
    * TODO: This is not tail-recursive
    */
-  def foldS(sList: SList, acc: SExpr)(f: (SExpr, SExpr) => Evaluation): Evaluation = sList match {
-    case SNil => acc.!
-    case head :: tail => for {
+  def foldS: FoldS = {
+    case (SNil, acc) => _ => acc.!
+    case (head :: tail, acc) => f => for {
       h <- Eval(head)
       a <- f(acc, h)
-      r <- foldS(tail, a)(f)
+      r <- a match {
+        case Return(e) => e.!
+        case _ => foldS(tail, a)(f)
+      }
     } yield r
+  }
+
+  def boolFunc: FoldS = {
+    case (args, arg) => f => for {
+      acc <- Eval(arg)
+      expr <- foldS(args, acc)(f)
+      bool <- expr match {
+        case SFalse => SFalse.!
+        case _ => STrue.!
+      }
+    } yield bool
   }
 
   def binOp(op: SExpr, a: SNumber, b: SNumber) =

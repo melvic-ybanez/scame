@@ -24,6 +24,8 @@ object Literals {
   val ArithmeticMap = Map("+" -> Add,
     "-" -> Subtract, "*" -> Multiply, "/" -> Divide)
 
-  val RelationalMap = Map("=" -> Equal,
+  val RelationalMap = Map("=" -> EqSign,
     ">" -> GT, ">=" -> GTE, "<" -> LT, "<=" -> LTE)
+
+  val EqLiteral = "eq?"
 }

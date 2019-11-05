@@ -1,8 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Literals._
-import com.melvic.scame.SExpr.{Define, Quote, _}
-import com.melvic.scame.SExpr.SList._
+import com.melvic.scame.SExpr._
 import fastparse.NoWhitespace._
 import fastparse._
 
@@ -51,7 +50,9 @@ object Parse {
 
   def relational[_: P] = literals(RelationalMap)
 
-  def function[_: P] = P(arithmetic | relational)
+  def eq[_: P] = P(EqLiteral).map(_ => Eq)
+
+  def function[_: P] = P(arithmetic | relational | eq)
 
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => ::(Quote, ::(expr, SNil)))
 
