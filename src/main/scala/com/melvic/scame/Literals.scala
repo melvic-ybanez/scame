@@ -28,4 +28,8 @@ object Literals {
     ">" -> GT, ">=" -> GTE, "<" -> LT, "<=" -> LTE)
 
   val EqLiteral = "eq?"
+  val EqualLiteral = "equal?"
+
+  val FunctionMap = ArithmeticMap ++ RelationalMap ++
+    Map(EqLiteral -> Eq, EqualLiteral -> Equal)
 }

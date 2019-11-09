@@ -64,6 +64,7 @@ object SExpr {
   case object LTE extends Relational
 
   case object Eq extends SFunction
+  case object Equal extends SFunction
 
   final case class Return(expr: SExpr) extends SExpr
 
@@ -71,4 +72,6 @@ object SExpr {
     case SFalse => true
     case _ => false
   }
+
+  def fromBoolean(b: Boolean) = if (b) STrue else SFalse
 }

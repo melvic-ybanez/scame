@@ -14,6 +14,10 @@ trait Implicits {
     def ! = ZIO.fail(error)
   }
 
+  // TODO: We might want to just add the Scala list operations directly
+  //  as extension methods instead of calling asScalaList, because it's
+  //  possible that we will drop the conversion of SList to Scala list
+  //  for performance reasons in the future.
   implicit class SListOps(list: SList) {
     def asScalaList: List[SExpr] = {
       @tailrec

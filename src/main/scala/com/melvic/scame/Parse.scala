@@ -46,13 +46,7 @@ object Parse {
   def specialForm[_: P] = literals(Map(DefineLiteral -> Define,
     QuoteLiteral -> Quote, LambdaLiteral -> Lambda, CondLiteral -> Cond, LetLiteral -> Let))
 
-  def arithmetic[_: P] = literals(ArithmeticMap)
-
-  def relational[_: P] = literals(RelationalMap)
-
-  def eq[_: P] = P(EqLiteral).map(_ => Eq)
-
-  def function[_: P] = P(arithmetic | relational | eq)
+  def function[_: P] = P(literals(FunctionMap))
 
   def quoteSugar[_: P] = P("'" ~ expression).map(expr => ::(Quote, ::(expr, SNil)))
 

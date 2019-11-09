@@ -1,16 +1,11 @@
-package com.melvic.scame
+package com.melvic.scame.eval
 
 import com.melvic.scame.ErrorCode._
 import com.melvic.scame.SExpr._
+import com.melvic.scame._
 import zio.ZIO
 
 object Eval {
-  type EvaluationE[E] = ZIO[EvalConfig, ErrorCode, E]
-  type Evaluation = EvaluationE[SExpr]
-  type PartialEval = PartialFunction[SExpr, Evaluation]
-
-  final case class EvalConfig(expr: SExpr, env: Env)
-
   def apply(expr: SExpr, env: Env): Evaluation = apply.provide(EvalConfig(expr, env))
 
   def apply(expression: SExpr): Evaluation =
@@ -149,7 +144,7 @@ object Eval {
     case Let :: expr => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
 
-  def builtInFunctions: PartialEval = arithmetic orElse relational orElse sEq
+  def builtInFunctions: PartialEval = arithmetic orElse relational orElse equalities
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
@@ -195,7 +190,7 @@ object Eval {
     }
 
     /**
-     * Computes the difference. If there are more than one numbers,
+     * Computes the quotient. If there are more than one numbers,
      * get the reciprocal of each item but the first one, and compute their product.
      * TODO: Division-by-zero stuff.
      */
@@ -240,23 +235,22 @@ object Eval {
   }
 
   def relational: PartialEval = {
-    def evalRelational(op: Relational)(f: (Double, Double) => Boolean): PartialEval = {
-      case `op` :: SNil => TooFewArguments(2, 0).!
-      case `op` :: _ :: SNil => TooFewArguments(2, 1).!
-      case `op` :: h :: t =>
-        def result(number: SNumber, p: => Boolean) =
-          if (p) number.! else Return(SFalse).!
+    def evalRelational(op: Relational)(f: (Double, Double) => Boolean): PartialEval =
+      nonBinaryOpError(op) orElse {
+        case `op` :: h :: t =>
+          def result(number: SNumber, p: => Boolean) =
+            if (p) number.! else Return(SFalse).!
 
-        boolFunc(t, h) {
-          case (SInt(a), i @ SInt(b)) => result(i, f(a, b))
-          case (SInt(a), r @ SRational(n, d)) => result(r, f(a, n / d))
-          case (SInt(a), r @ SReal(n)) => result(r, f(a, n))
-          case (SRational(n, d), r @ SRational(n1, d1)) => result(r, f(n / d, n1 / d1))
-          case (SRational(n, d), sr @ SReal(r)) => result(sr, f(n / d, r))
-          case (SReal(a), r @ SReal(b)) => result(r, f(a, b))
-          case pair => reverseBinOp(`op`)(pair)
-        }
-    }
+          boolFunc(t, h) {
+            case (SInt(a), i @ SInt(b)) => result(i, f(a, b))
+            case (SInt(a), r @ SRational(n, d)) => result(r, f(a, n / d))
+            case (SInt(a), r @ SReal(n)) => result(r, f(a, n))
+            case (SRational(n, d), r @ SRational(n1, d1)) => result(r, f(n / d, n1 / d1))
+            case (SRational(n, d), sr @ SReal(r)) => result(sr, f(n / d, r))
+            case (SReal(a), r @ SReal(b)) => result(r, f(a, b))
+            case pair => reverseBinOp(`op`)(pair)
+          }
+      }
 
     def eqSign = evalRelational(EqSign)(_ == _)
     def greater = evalRelational(GT)(_ > _)
@@ -267,60 +261,22 @@ object Eval {
     eqSign orElse greater orElse greaterEqual orElse less orElse lessEqual
   }
 
-  def sEq: PartialEval = {
-    case Eq :: SNil => TooFewArguments(2, 0).!
-    case Eq :: _ :: SNil => TooFewArguments(2, 1).!
-    case Eq :: arg :: args => boolFunc(args, arg) {
-      // Symbols should be equal if they have the same name
-      // because symbols are unique
-      case (s @ SSymbol(a), SSymbol(b)) if a == b => s.!
+  def equalities: PartialEval = {
+    def equality(op: SExpr)(f: (SExpr, SExpr) => Boolean): PartialEval =
+      nonBinaryOpError(op) orElse {
+        case `op` :: arg :: args => boolFunc(args, arg) {
+          // Symbols should be equal if they have the same name
+          // because symbols are unique
+          case (s @ SSymbol(a), SSymbol(b)) if a == b => s.!
 
-      case (a, b) if a eq b => a.!
-      case _ => Return(SFalse).!
-    }
-  }
-
-  def register(name: String, expr: SExpr) =
-    Env.register(expr).provideSome[EvalConfig](e => (name, e.env))
-
-  type FoldS = (SList, SExpr) => ((SExpr, SExpr) => Evaluation) => Evaluation
-
-  /**
-   * Short-circuiting fold designed specifically for evaluated s-expressions.
-   * TODO: This is not tail-recursive
-   */
-  def foldS: FoldS = {
-    case (SNil, acc) => _ => acc.!
-    case (head :: tail, acc) => f => for {
-      h <- Eval(head)
-      a <- f(acc, h)
-      r <- a match {
-        case Return(e) => e.!
-        case _ => foldS(tail, a)(f)
+          case (a, b) if f(a, b) => a.!
+          case _ => Return(SFalse).!
+        }
       }
-    } yield r
-  }
 
-  def boolFunc: FoldS = {
-    case (args, arg) => f => for {
-      acc <- Eval(arg)
-      expr <- foldS(args, acc)(f)
-      bool <- expr match {
-        case SFalse => SFalse.!
-        case _ => STrue.!
-      }
-    } yield bool
-  }
+    def sEq = equality(Eq)(_ eq _)
+    def sEqual = equality(Equal)(_ == _)
 
-  def binOp(op: SExpr, a: SNumber, b: SNumber) =
-    Eval(op :: a :: b :: SNil)
-
-  def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
-
-  def reverseBinOp(op: SExpr): PartialFunction[(SExpr, SExpr), Evaluation] = {
-    case (f: SRational, i: SInt) => binOp(op, i, f)
-    case (r: SReal, i: SInt) => binOp(op, i, r)
-    case (r: SReal, f: SRational) => binOp(op, f, r)
-    case (_, expr) => nonNumber(expr)
+    sEq orElse sEqual
   }
 }
