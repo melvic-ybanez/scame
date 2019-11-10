@@ -32,8 +32,10 @@ object Literals {
 
   val ListLiteral = "list"
   val ConsLiteral = "cons"
+  val NullLiteral = "null?"
 
   val FunctionMap = ArithmeticMap ++ RelationalMap ++
     Map(EqLiteral -> Eq, EqualLiteral -> Equal,
-      ConsLiteral -> Cons, ListLiteral -> SList)
+      ConsLiteral -> Cons, ListLiteral -> SList,
+      NullLiteral -> Null)
 }

@@ -1,8 +1,9 @@
 package com.melvic.scame.eval
 
-import com.melvic.scame.ErrorCode.{ExprMismatch, TooFewArguments}
-import com.melvic.scame.{Constants, Env, SExpr}
+import com.melvic.scame.ErrorCode.{ExprMismatch, TooFewArguments, TooManyArguments}
+import com.melvic.scame.{Constants, Env, ErrorCode, SExpr}
 import com.melvic.scame.SExpr._
+import Utils._
 
 trait Utils {
   /**
@@ -38,9 +39,24 @@ trait Utils {
   def binOp(op: SExpr, a: SNumber, b: SNumber) =
     Eval(op :: a :: b :: SNil)
 
-  def nonBinaryOpError(op: SExpr): PartialEval = {
-    case `op` :: SNil => TooFewArguments(2, 0).!
-    case `op` :: _ :: SNil => TooFewArguments(2, 1).!
+  def argsCountOutOfBounds(
+      pred: (Int, Int) => Boolean, error: (Int, Int) => ErrorCode): ArgsCountError =
+    (op, count) => {
+        case `op` :: args if pred(args.size, count) => error(count, args.size).!
+      }
+
+  def atLeastNArgsCountError: ArgsCountError = argsCountOutOfBounds(_ < _, TooFewArguments)
+  def atMostNArgsCountError: ArgsCountError = argsCountOutOfBounds(_ > _, TooManyArguments)
+
+  def requireArgsCount(g: ArgsCountError): ArgsCountEval = (op, count) => f =>
+    g(op, count) orElse f
+
+  def requireMinArgsCount: ArgsCountEval = requireArgsCount(atLeastNArgsCountError)
+
+  def requireMaxArgsCount: ArgsCountEval = requireArgsCount(atMostNArgsCountError)
+
+  def requireArgsCount: ArgsCountEval = { (op, count) => f =>
+    atLeastNArgsCountError(op, count) orElse atMostNArgsCountError(op, count) orElse f
   }
 
   def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
@@ -51,4 +67,9 @@ trait Utils {
     case (r: SReal, f: SRational) => binOp(op, f, r)
     case (_, expr) => nonNumber(expr)
   }
+}
+
+object Utils {
+  type ArgsCountError = (SExpr, Int) => PartialEval
+  type ArgsCountEval = (SExpr, Int) => PartialEval => PartialEval
 }

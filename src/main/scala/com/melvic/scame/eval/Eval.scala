@@ -130,9 +130,10 @@ object Eval {
   }
 
   def builtInFunctions: PartialEval =
-    arithmetic orElse relational orElse equalities orElse cons orElse listFunc
+    arithmetic orElse relational orElse equalities orElse cons orElse
+      listFunc orElse sNull
 
-  def cons: PartialEval = nonBinaryOpError(Cons) orElse {
+  def cons: PartialEval = requireArgsCount(Cons, 2) {
     case Cons :: head :: tail :: SNil => for {
       h <- Eval(head)
       t <- Eval(tail)
@@ -142,7 +143,6 @@ object Eval {
       // Otherwise, it remains an improper list.
       case _ => Pair(h, t)
     }
-    case Cons :: args => TooManyArguments(2, args.asScalaList.length).!
   }
 
   def listFunc: PartialEval = {
@@ -244,7 +244,7 @@ object Eval {
 
   def relational: PartialEval = {
     def evalRelational(op: Relational)(f: (Double, Double) => Boolean): PartialEval =
-      nonBinaryOpError(op) orElse {
+      requireMinArgsCount(op, 2) {
         case `op` :: h :: t =>
           def result(number: SNumber, p: => Boolean) =
             if (p) number.! else Return(SFalse).!
@@ -271,7 +271,7 @@ object Eval {
 
   def equalities: PartialEval = {
     def equality(op: SExpr)(f: (SExpr, SExpr) => Boolean): PartialEval =
-      nonBinaryOpError(op) orElse {
+      requireMinArgsCount(op, 2) {
         case `op` :: arg :: args => boolFunc(args, arg) {
           // Symbols should be equal if they have the same name
           // because symbols are unique
@@ -286,5 +286,10 @@ object Eval {
     def sEqual = equality(Equal)(_ == _)
 
     sEq orElse sEqual
+  }
+
+  def sNull: PartialEval = requireArgsCount(Null, 1) {
+    case Null :: SNil :: SNil => STrue.!
+    case Null :: _ => SFalse.!
   }
 }

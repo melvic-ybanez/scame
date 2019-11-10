@@ -20,6 +20,8 @@ trait Implicits {
   //  possible that we will drop the conversion of SList to Scala list
   //  for performance reasons in the future.
   implicit class SListOps(list: SList) {
+    lazy val size: Int = asScalaList.length
+
     def asScalaList: List[SExpr] = {
       @tailrec
       def recurse(sList: SList, acc: List[SExpr]): List[SExpr] = sList match {
