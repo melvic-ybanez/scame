@@ -34,19 +34,6 @@ object Eval {
     } yield result
   }
 
-  def cons: PartialEval = nonBinaryOpError(Cons) orElse {
-    case Cons :: head :: tail :: SNil => for {
-      h <- Eval(head)
-      t <- Eval(tail)
-    } yield t match {
-      // If the tail is a list, the whole cons is a proper list.
-      case tList: SList => h :: tList
-      // Otherwise, it remains an improper list.
-      case _ => Pair(h, t)
-    }
-    case Cons :: args => TooManyArguments(2, args.asScalaList.length).!
-  }
-
   def specialForms: PartialEval = define orElse
     cond orElse let  orElse quote orElse sLambda
 
@@ -143,7 +130,29 @@ object Eval {
   }
 
   def builtInFunctions: PartialEval =
-    arithmetic orElse relational orElse equalities orElse cons
+    arithmetic orElse relational orElse equalities orElse cons orElse listFunc
+
+  def cons: PartialEval = nonBinaryOpError(Cons) orElse {
+    case Cons :: head :: tail :: SNil => for {
+      h <- Eval(head)
+      t <- Eval(tail)
+    } yield t match {
+      // If the tail is a list, the whole cons is a proper list.
+      case tList: SList => h :: tList
+      // Otherwise, it remains an improper list.
+      case _ => Pair(h, t)
+    }
+    case Cons :: args => TooManyArguments(2, args.asScalaList.length).!
+  }
+
+  def listFunc: PartialEval = {
+    case SList :: SNil => SNil.!
+
+    // TODO: Optimize this
+    case SList :: args => foldS(args.asScalaList.reverse.asSList, SNil) {
+      case (acc: SList, expr) => (expr :: acc).!
+    }
+  }
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {
