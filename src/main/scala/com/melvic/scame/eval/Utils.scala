@@ -59,6 +59,16 @@ trait Utils {
     atLeastNArgsCountError(op, count) orElse atMostNArgsCountError(op, count) orElse f
   }
 
+  def requireNonEmptyList(op: SExpr)(f: :: => Evaluation): PartialEval = requireArgsCount(op, 1) {
+    case `op` :: arg :: SNil => for {
+      maybeList <- Eval(arg)
+      result <- maybeList match {
+        case list @ (h :: t) => f(list)
+        case expr => ExprMismatch(Vector(Constants.NonEmptyList), expr).!
+      }
+    } yield result
+  }
+
   def nonNumber(expr: SExpr) = ExprMismatch(Vector(Constants.Number), expr).!
 
   def reverseBinOp(op: SExpr): PartialFunction[(SExpr, SExpr), Evaluation] = {

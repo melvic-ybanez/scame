@@ -132,7 +132,7 @@ object Eval {
 
   def builtInFunctions: PartialEval =
     arithmetic orElse relational orElse equalities orElse cons orElse
-      listFunc orElse sNull orElse car
+      listFunc orElse sNull orElse car orElse cdr
 
   def cons: PartialEval = requireArgsCount(Cons, 2) {
     case Cons :: head :: tail :: SNil => for {
@@ -294,13 +294,7 @@ object Eval {
     case Null :: _ => SFalse.!
   }
 
-  def car: PartialEval = requireArgsCount(Car, 1) {
-    case Car :: arg :: SNil => for {
-      maybeList <- Eval(arg)
-      head <- maybeList match {
-        case h :: _ => h.!
-        case expr => ExprMismatch(Vector(Constants.NonEmptyList), expr).!
-      }
-    } yield head
-  }
+  def car: PartialEval = requireNonEmptyList(Car) { case h :: _ => h.! }
+
+  def cdr: PartialEval = requireNonEmptyList(Cdr) { case _ :: t => t.! }
 }

@@ -35,9 +35,11 @@ object Literals {
   val NullLiteral = "null?"
 
   val CarLiteral = "car"
+  val CdrLiteral = "cdr"
 
   val FunctionMap = ArithmeticMap ++ RelationalMap ++
     Map(EqLiteral -> Eq, EqualLiteral -> Equal,
       ConsLiteral -> Cons, ListLiteral -> SList,
-      NullLiteral -> Null, CarLiteral -> Car)
+      NullLiteral -> Null, CarLiteral -> Car,
+      CdrLiteral -> Cdr)
 }
