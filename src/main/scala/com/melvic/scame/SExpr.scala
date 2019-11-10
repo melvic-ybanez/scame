@@ -67,6 +67,7 @@ object SExpr {
   case object Equal extends SFunction
   case object Cons extends SFunction
   case object Null extends SFunction
+  case object Car extends SFunction
 
   final case class Return(expr: SExpr) extends SExpr
 

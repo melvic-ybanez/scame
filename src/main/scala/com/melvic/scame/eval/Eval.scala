@@ -1,5 +1,6 @@
 package com.melvic.scame.eval
 
+import com.melvic.scame.Env.NonEmptyEnv
 import com.melvic.scame.ErrorCode._
 import com.melvic.scame.SExpr._
 import com.melvic.scame._
@@ -131,7 +132,7 @@ object Eval {
 
   def builtInFunctions: PartialEval =
     arithmetic orElse relational orElse equalities orElse cons orElse
-      listFunc orElse sNull
+      listFunc orElse sNull orElse car
 
   def cons: PartialEval = requireArgsCount(Cons, 2) {
     case Cons :: head :: tail :: SNil => for {
@@ -291,5 +292,15 @@ object Eval {
   def sNull: PartialEval = requireArgsCount(Null, 1) {
     case Null :: SNil :: SNil => STrue.!
     case Null :: _ => SFalse.!
+  }
+
+  def car: PartialEval = requireArgsCount(Car, 1) {
+    case Car :: arg :: SNil => for {
+      maybeList <- Eval(arg)
+      head <- maybeList match {
+        case h :: _ => h.!
+        case expr => ExprMismatch(Vector(Constants.NonEmptyList), expr).!
+      }
+    } yield head
   }
 }

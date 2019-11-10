@@ -4,4 +4,5 @@ object Constants {
   val Symbol = "Symbol"
   val Pair = "Pair"
   val Number = "Number"
+  val NonEmptyList = "Non-empty List"
 }
