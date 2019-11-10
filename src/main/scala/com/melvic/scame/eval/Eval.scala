@@ -3,6 +3,7 @@ package com.melvic.scame.eval
 import com.melvic.scame.ErrorCode._
 import com.melvic.scame.SExpr._
 import com.melvic.scame._
+import com.melvic.scame.utils.SMath
 import zio.ZIO
 
 object Eval {

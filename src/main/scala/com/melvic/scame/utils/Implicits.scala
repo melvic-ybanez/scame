@@ -1,6 +1,7 @@
-package com.melvic.scame
+package com.melvic.scame.utils
 
-import com.melvic.scame.SExpr._
+import com.melvic.scame.SExpr.{::, SList, SNil}
+import com.melvic.scame.{ErrorCode, SExpr}
 import zio.ZIO
 
 import scala.annotation.tailrec

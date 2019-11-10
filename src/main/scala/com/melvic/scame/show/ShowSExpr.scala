@@ -4,7 +4,7 @@ import com.melvic.scame.Literals.{FalseLiteral, TrueLiteral}
 import com.melvic.scame.SExpr._
 import com.melvic.scame.{Literals, SExpr}
 
-trait SExprInstances {
+trait ShowSExpr {
   implicit val showBoolean: Show[SBoolean] = {
     case STrue => TrueLiteral
     case SFalse => FalseLiteral

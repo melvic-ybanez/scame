@@ -1,4 +1,4 @@
-package com.melvic.scame
+package com.melvic.scame.utils
 
 import com.melvic.scame.SExpr.{SRational, SReal}
 

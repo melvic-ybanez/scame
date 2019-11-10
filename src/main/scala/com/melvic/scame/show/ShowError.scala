@@ -4,7 +4,7 @@ import com.melvic.scame.ErrorCode._
 import com.melvic.scame.{ErrorCode, SExpr}
 
 // TODO: Report locations (or show stacktrace) of errors
-trait ErrorCodeInstances {
+trait ShowError {
   implicit val showErrorCode: Show[ErrorCode] = symbol =>
     "Error: " + (symbol match {
       case SymbolNotFound(name) => s"Unbound symbol: $name"
@@ -24,4 +24,4 @@ trait ErrorCodeInstances {
     })
 }
 
-object ErrorCodeInstances extends ErrorCodeInstances
+object ShowError extends ShowError

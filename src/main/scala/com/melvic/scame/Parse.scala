@@ -2,6 +2,7 @@ package com.melvic.scame
 
 import com.melvic.scame.Literals._
 import com.melvic.scame.SExpr._
+import com.melvic.scame.utils.SMath
 import fastparse.NoWhitespace._
 import fastparse._
 
