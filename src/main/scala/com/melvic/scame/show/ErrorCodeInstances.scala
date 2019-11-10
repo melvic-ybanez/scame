@@ -16,6 +16,8 @@ trait ErrorCodeInstances {
         s"Expression mismatch. Expected: $expectedString. Got: ${Show[SExpr](got)}"
       case TooFewArguments(expectedMin, got) =>
         s"Too Few Arguments. Expected: at least $expectedMin. Got: $got"
+      case TooManyArguments(expectedMax, got) =>
+        s"Too Many Arguments. Expected: at most $expectedMax. Got: $got"
       case InvalidLambda => "Invalid Lambda"
       case NotAFunction(expr) => s"${Show[SExpr](expr)} is not a function"
       case SymbolAlreadyExists(symbol) => s"Symbol already exists: $symbol"

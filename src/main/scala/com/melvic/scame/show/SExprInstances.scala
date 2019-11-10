@@ -26,6 +26,11 @@ trait SExprInstances {
     s"#<Function ${functionMap(function)}>"
   }
 
+  implicit def showPair(implicit showExpr: Show[SExpr]): Show[Pair] = {
+    case Pair(a, b: Pair) => s"${showExpr(a)} ${showPair(showExpr)(b)}"
+    case Pair(a, b) => s"${showExpr(a)} . ${showExpr(b)}"
+  }
+
   implicit def showSExpr(implicit showBoolean: Show[SBoolean],
       showNumber: Show[SNumber], showSpecialForm: Show[SpecialForm],
       showFunction: Show[SFunction]): Show[SExpr] = {
@@ -41,5 +46,6 @@ trait SExprInstances {
       val showExpr = showSExpr
       val exprs = expr.asScalaList.map(expr => showExpr(expr)).mkString(" ")
       s"($exprs)"
+    case pair: Pair => s"(${showPair(showSExpr)(pair)})"
   }
 }

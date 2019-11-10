@@ -12,8 +12,7 @@ object Eval {
     apply.provideSome[EvalConfig](_.copy(expr = expression))
 
   def apply: Evaluation = ZIO.accessM { case EvalConfig(expr, _) =>
-    val eval = atom orElse symbol orElse pair orElse
-      specialForms orElse builtInFunctions orElse sList
+    val eval = atom orElse symbol orElse specialForms orElse builtInFunctions orElse sList
     eval(expr)
   }
 
@@ -34,9 +33,8 @@ object Eval {
     } yield result
   }
 
-  def pair: PartialEval = {
-    case Cons :: _ :: SNil => IncorrectParamCount(2, 1).!
-    case Cons :: head :: tail => for {
+  def cons: PartialEval = nonBinaryOpError(Cons) orElse {
+    case Cons :: head :: tail :: SNil => for {
       h <- Eval(head)
       t <- Eval(tail)
     } yield t match {
@@ -45,8 +43,7 @@ object Eval {
       // Otherwise, it remains an improper list.
       case _ => Pair(h, t)
     }
-    case Cons :: tail =>
-      ExprMismatch("pair" +: Vector(), tail).!
+    case Cons :: args => TooManyArguments(2, args.asScalaList.length).!
   }
 
   def specialForms: PartialEval = define orElse
@@ -144,7 +141,8 @@ object Eval {
     case Let :: expr => ExprMismatch(Vector("A list of pairs for bindings"), expr).!
   }
 
-  def builtInFunctions: PartialEval = arithmetic orElse relational orElse equalities
+  def builtInFunctions: PartialEval =
+    arithmetic orElse relational orElse equalities orElse cons
 
   def arithmetic: PartialEval = {
     def add: PartialEval = {

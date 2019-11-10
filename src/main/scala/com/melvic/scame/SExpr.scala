@@ -28,13 +28,13 @@ object SExpr {
     def ::(sexpr: SExpr): SList = SExpr.::(sexpr, this)
   }
   case object SNil extends SList
+  case object SList extends SFunction
   final case class ::(head: SExpr, tail: SList) extends SList
   final case class Pair(first: SExpr, second: SExpr) extends SExpr
 
   // Special Forms as heads of the lists
   case object Define extends SpecialForm
   case object Lambda extends SpecialForm
-  case object Cons extends SpecialForm
   case object Quote extends SpecialForm
   case object Cond extends SpecialForm    // TODO: Support for If
   case object Let extends SpecialForm     // TODO: Support for LetRec
@@ -65,6 +65,7 @@ object SExpr {
 
   case object Eq extends SFunction
   case object Equal extends SFunction
+  case object Cons extends SFunction
 
   final case class Return(expr: SExpr) extends SExpr
 
