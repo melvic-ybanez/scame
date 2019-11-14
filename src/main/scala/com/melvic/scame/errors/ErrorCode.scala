@@ -1,4 +1,6 @@
-package com.melvic.scame
+package com.melvic.scame.errors
+
+import com.melvic.scame.exprs.SExpr
 
 trait ErrorCode
 

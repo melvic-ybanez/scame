@@ -3,7 +3,9 @@ package com.melvic.scame
 import com.melvic.scame.Env.EmptyEnv
 import com.melvic.scame.Run.EvalHandler
 import com.melvic.scame.SExpr.Definition
-import com.melvic.scame.show.Show
+import com.melvic.scame.errors.ErrorCode
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.utils.Show
 import zio.ZIO
 import zio.console._
 

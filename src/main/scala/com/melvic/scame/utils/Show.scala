@@ -1,4 +1,4 @@
-package com.melvic.scame.show
+package com.melvic.scame.utils
 
 trait Show[A] extends (A => String)
 

@@ -1,7 +1,8 @@
-package com.melvic.scame.show
+package com.melvic.scame.errors
 
-import com.melvic.scame.ErrorCode._
-import com.melvic.scame.{ErrorCode, SExpr}
+import com.melvic.scame.errors.ErrorCode._
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.utils.Show
 
 // TODO: Report locations (or show stacktrace) of errors
 trait ShowError {

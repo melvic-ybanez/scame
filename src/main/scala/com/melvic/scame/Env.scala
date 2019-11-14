@@ -1,6 +1,7 @@
 package com.melvic.scame
 
-import com.melvic.scame.ErrorCode.{SymbolAlreadyExists, SymbolNotFound}
+import com.melvic.scame.errors.ErrorCode.{SymbolAlreadyExists, SymbolNotFound}
+import com.melvic.scame.exprs.SExpr
 import zio.ZIO
 
 /**

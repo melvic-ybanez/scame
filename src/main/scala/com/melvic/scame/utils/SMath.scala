@@ -1,6 +1,6 @@
 package com.melvic.scame.utils
 
-import com.melvic.scame.SExpr.{SRational, SReal}
+import com.melvic.scame.exprs.SExpr.{SRational, SReal}
 
 import scala.annotation.tailrec
 

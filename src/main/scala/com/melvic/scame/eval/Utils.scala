@@ -1,9 +1,11 @@
 package com.melvic.scame.eval
 
-import com.melvic.scame.ErrorCode.{ExprMismatch, TooFewArguments, TooManyArguments}
-import com.melvic.scame.{Constants, Env, ErrorCode, SExpr}
-import com.melvic.scame.SExpr._
+import com.melvic.scame.{Constants, Env}
 import Utils._
+import com.melvic.scame.errors.ErrorCode
+import com.melvic.scame.errors.ErrorCode._
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.exprs.SExpr._
 
 trait Utils {
   /**

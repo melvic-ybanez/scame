@@ -1,6 +1,6 @@
 package com.melvic.scame
 
-import com.melvic.scame.SExpr._
+import com.melvic.scame.exprs.SExpr._
 
 object Literals {
   val TrueLiteral = "#t"

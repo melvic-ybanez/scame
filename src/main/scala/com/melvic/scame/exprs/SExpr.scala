@@ -1,4 +1,6 @@
-package com.melvic.scame
+package com.melvic.scame.exprs
+
+import com.melvic.scame.Env
 
 sealed trait SExpr
 
@@ -76,6 +78,4 @@ object SExpr {
     case SFalse => true
     case _ => false
   }
-
-  def fromBoolean(b: Boolean) = if (b) STrue else SFalse
 }

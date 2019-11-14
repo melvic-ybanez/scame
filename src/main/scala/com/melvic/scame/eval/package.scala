@@ -1,6 +1,8 @@
 package com.melvic.scame
 
 import com.melvic.scame.SExpr.SList
+import com.melvic.scame.errors.ErrorCode
+import com.melvic.scame.exprs.SExpr
 import zio.ZIO
 
 package object eval extends Utils {

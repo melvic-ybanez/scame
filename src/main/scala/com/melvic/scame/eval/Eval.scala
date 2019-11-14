@@ -1,9 +1,10 @@
 package com.melvic.scame.eval
 
 import com.melvic.scame.Env.NonEmptyEnv
-import com.melvic.scame.ErrorCode._
-import com.melvic.scame.SExpr._
 import com.melvic.scame._
+import com.melvic.scame.errors.ErrorCode._
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.exprs.SExpr._
 import com.melvic.scame.utils.SMath
 import zio.ZIO
 
@@ -60,7 +61,7 @@ object Eval {
   def callFunction: PartialEval = {
     case Lambda(params: SList, body :: _) :: args =>
       /**
-       * Binds every parameter to its corresponding parameter.
+       * Binds every parameter to its corresponding argument.
        */
       def assignArgs(env: Env): (SList, SList) => EvaluationE[Env] = {
         case (SNil, _) | (_, SNil) => ZIO.succeed(env)

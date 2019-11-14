@@ -1,9 +1,11 @@
 package com.melvic.scame
 
 import com.melvic.scame.Env.EmptyEnv
-import com.melvic.scame.SExpr._
+import com.melvic.scame.errors.ErrorCode
 import com.melvic.scame.eval.{Eval, EvalConfig}
-import com.melvic.scame.show.Show
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.exprs.SExpr._
+import com.melvic.scame.utils.Show
 import fastparse.Parsed
 import zio.console._
 import zio.{URIO, ZIO}

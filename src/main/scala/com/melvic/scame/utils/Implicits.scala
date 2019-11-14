@@ -1,17 +1,18 @@
 package com.melvic.scame.utils
 
-import com.melvic.scame.SExpr.{::, SList, SNil}
-import com.melvic.scame.{ErrorCode, SExpr}
+import com.melvic.scame.errors.ErrorCode
+import com.melvic.scame.exprs.SExpr
+import com.melvic.scame.exprs.SExpr.{SList, SNil, ::}
 import zio.ZIO
 
 import scala.annotation.tailrec
 
 trait Implicits {
-  implicit class ExprAsResult[E <: SExpr](expr: E) {
+  implicit class ExprOps[E <: SExpr](expr: E) {
     def ! = ZIO.succeed(expr)
   }
 
-  implicit class ErrorCodeAsResult[E <: ErrorCode](error: E) {
+  implicit class ErrorCodeOps[E <: ErrorCode](error: E) {
     def ! = ZIO.fail(error)
   }
 
