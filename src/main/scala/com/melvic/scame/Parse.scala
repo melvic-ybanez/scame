@@ -1,8 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Literals._
-import com.melvic.scame.errors.StackTrace
-import com.melvic.scame.errors.StackTrace.{EmptyStack, NonEmptyStackTrace}
+import com.melvic.scame.errors.IndexedNode
 import com.melvic.scame.exprs.SExpr
 import com.melvic.scame.exprs.SExpr._
 import com.melvic.scame.utils.SMath
@@ -66,21 +65,24 @@ object Parse {
 
   def function[_: P] = P(literals(FunctionMap))
 
-  def quoteSugar[_: P] = P("'" ~ expression).map(expr => ::(Quote, ::(expr, SNil)))
+  def quoteSugar[_: P] = P("'" ~ AnyChar.!).flatMap(expr => expression(s"(quote $expr)"))
 
   def atom[_: P] = P(boolean | number | specialForm | character)
 
-  def sList[_: P] = IP("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ spaces ~ ")")
+  def sList[_: P]: P[IndexedNode] = IP("(" ~ spaces ~ expression.rep(0, sep=" ".rep(1)) ~ spaces ~ ")")
     // Register nodes to the stack trace
     .map { case (index, indexedExprs) =>
-      val (stackChildren, slist) = indexedExprs.foldLeft[(List[StackTrace], SList)]((Nil, SNil)) {
-        case ((children, acc), (i, sexpr)) => (StackTrace(sexpr, i) :: children, sexpr :: acc)
+      val (stackChildren, sList) = indexedExprs.foldLeft[(List[IndexedNode], SList)]((Nil, SNil)) {
+        case ((children, acc), in @ IndexedNode(sexpr, _, _)) => (in :: children, sexpr :: acc)
       }
-      val stackParent = NonEmptyStackTrace(slist, index, stackChildren)
+      IndexedNode(sList, index, stackChildren)
     }
 
   // TODO: Add support for comments
-  def expression[_: P]: IndexedParser[SExpr] = P(atom | sList | quoteSugar | function | symbol)
+  def expression[_: P]: P[IndexedNode] = P(atom | sList | quoteSugar | function | symbol).map {
+    case (pos: Int, expr: SExpr) => IndexedNode(expr, pos)
+    case a: IndexedNode => a
+  }
 
   def apply(input: String) = parse(input, expression(_))
 }
