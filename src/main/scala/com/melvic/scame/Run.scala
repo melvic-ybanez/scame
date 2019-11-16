@@ -1,7 +1,7 @@
 package com.melvic.scame
 
 import com.melvic.scame.Env.EmptyEnv
-import com.melvic.scame.errors.{ErrorCode, IndexedNode}
+import com.melvic.scame.errors.{ErrorCode, IndexedSExpr}
 import com.melvic.scame.eval.{Eval, EvalConfig}
 import com.melvic.scame.exprs.SExpr
 import com.melvic.scame.exprs.SExpr._
@@ -22,7 +22,7 @@ object Run {
         r <- ZIO.succeed(Empty[A]())
       } yield r
 
-      case Parsed.Success(IndexedNode(pos, value, _), _) => for {
+      case Parsed.Success(IndexedSExpr(pos, value, _), _) => for {
         evaluation <- Eval.apply.provide(EvalConfig(g(value), env)).either
         result <- f(evaluation)
       } yield result
